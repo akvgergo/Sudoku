@@ -21,6 +21,8 @@ namespace Sudoku.Util
     /// 
     /// We also prefer pointer math over built in functions or converting, because conversion methods are slow
     /// and things like math.abs needs branch prediction, which would be prone to have a 50% fail...
+    /// 
+    /// Pretty much like everything in the project, it's not stupid proofed, use your head.
     /// </remarks>
     class QuickRand
     {
@@ -154,7 +156,7 @@ namespace Sudoku.Util
         /// <param name="max">The exclusive higher bound.</param>
         public unsafe long GetRange(long min, long max)
         {
-            return Getlong() % (max - min) + min;
+            return (long)(Getulong() % (ulong)(max - min)) + min;
         }
 
         /// <summary>
@@ -174,7 +176,7 @@ namespace Sudoku.Util
         /// <param name="max">The exclusive higher bound.</param>
         public unsafe int GetRange(int min, int max)
         {
-            return Getint() % (max - min) + min;
+            return (int)(Getuint() % (max - min)) + min;
         }
         /// <summary>
         /// Gets the seed values of the current instance.
