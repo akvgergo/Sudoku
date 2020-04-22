@@ -105,7 +105,7 @@ namespace Sudoku.Games
                 {
                     caches[x] |= m[x, y];
                     caches[cCOffset + y] |= m[x, y];
-                    caches[cRoffset + x / 3 ]
+                    caches[cRoffset + x / 3]  = m[x, y];
                 }
             }
 

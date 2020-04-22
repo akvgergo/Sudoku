@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 namespace Sudoku.Util
 {
     /// <summary>
-    /// A xorshift PRNG, specifically xorshift+.
+    /// A xorshift PRNG, specifically xorshift+. Full range 32 or 64 bits, watch out for negative values.
     /// </summary>
     /// <remarks>
     /// The traditional .NET <see cref="Random"/> is both slow and has a relatively small range (2^31).
@@ -18,6 +18,9 @@ namespace Sudoku.Util
     /// 
     /// The reality is, we basically want to generate matrixes and I could go insane searching for an algorithm
     /// that's fast and good for that. Let's just go for speed and simplicity instead.
+    /// 
+    /// We also prefer pointer math over built in functions or converting, because conversion methods are slow
+    /// and things like math.abs needs branch prediction, which would be prone to have a 50% fail...
     /// </remarks>
     class QuickRand
     {
@@ -134,6 +137,45 @@ namespace Sudoku.Util
             return *(((int*)&N) + 1);
         }
 
+        /// <summary>
+        /// Generates a random <see cref="ulong"/> in the specified range.
+        /// </summary>
+        /// <param name="min">The inclusive lower bound.</param>
+        /// <param name="max">The exclusive higher bound.</param>
+        public unsafe ulong GetRange(ulong min, ulong max)
+        {
+            return Getulong() % (max - min) + min;
+        }
+
+        /// <summary>
+        /// Generates a random <see cref="long"/> in the specified range.
+        /// </summary>
+        /// <param name="min">The inclusive lower bound.</param>
+        /// <param name="max">The exclusive higher bound.</param>
+        public unsafe long GetRange(long min, long max)
+        {
+            return Getlong() % (max - min) + min;
+        }
+
+        /// <summary>
+        /// Generates a random <see cref="ulong"/> in the specified range.
+        /// </summary>
+        /// <param name="min">The inclusive lower bound.</param>
+        /// <param name="max">The exclusive higher bound.</param>
+        public unsafe uint GetRange(uint min, uint max)
+        {
+            return Getuint() % (max - min) + min;
+        }
+
+        /// <summary>
+        /// Generates a random <see cref="ulong"/> in the specified range.
+        /// </summary>
+        /// <param name="min">The inclusive lower bound.</param>
+        /// <param name="max">The exclusive higher bound.</param>
+        public unsafe int GetRange(int min, int max)
+        {
+            return Getint() % (max - min) + min;
+        }
         /// <summary>
         /// Gets the seed values of the current instance.
         /// </summary>

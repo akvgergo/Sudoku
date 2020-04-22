@@ -15,7 +15,7 @@ using Sudoku.Games;
 using Sudoku.Matrices;
 using Sudoku.Util;
 
-namespace Sudoku
+namespace Sudoku.UI
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -26,7 +26,9 @@ namespace Sudoku
         {
             InitializeComponent();
 
-            ClassicSudoku s = new ClassicSudoku();
+            QuickRand rnd = new QuickRand();
+
+            rnd.GetRange(20, 40);
         }
     }
 }
