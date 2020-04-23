@@ -73,20 +73,22 @@ namespace Sudoku.Games
                 }
             }
 
-            values.Shuffle(rnd);
+            //values.Shuffle(rnd);
 
-            for (int x = 0; x < regionWidth; x++)
-            {
-                for (int y = 0; y < regionHeight; y++)
-                {
-                    matrix[ColumnCount - x - 1, RowCount - y - 1] = 1 << values[x * regionHeight + y];
-                }
-            }
+            //for (int x = 0; x < regionWidth; x++)
+            //{
+            //    for (int y = 0; y < regionHeight; y++)
+            //    {
+            //        matrix[ColumnCount - x - 1, RowCount - y - 1] = 1 << values[x * regionHeight + y];
+            //    }
+            //}
 
-            
+
 
             matrix.Print();
-            //if (!GenerateFromPartial(matrix, rnd)) throw new Exception("Logic error, we screwed.");
+            if (!GenerateFromPartial(matrix, rnd)) throw new Exception("Logic error, we screwed.");
+
+            innerMatrix = matrix.ToMatrix();
         }
 
         /// <summary>
@@ -102,7 +104,7 @@ namespace Sudoku.Games
             //all caches should be the same size, the only way this isn't generateable from say, an empty matrix
             //is if we get an exceptionally stupid size argument or a prime MaxVal.
             int[] caches = new int[m.Width * 3];
-            int cCOffset = m.Width, cRoffset = m.Width * 2;
+            int cCOffset = m.Width, cROffset = m.Width * 2;
             //Region sizes
             var regions = GetRegionSize(m.Width);
             int regionWidth = regions.width, regionHeight = regions.height;
@@ -114,7 +116,7 @@ namespace Sudoku.Games
                 {
                     caches[x] |= m[x, y];
                     caches[cCOffset + y] |= m[x, y];
-                    caches[cRoffset + x / regionWidth + y / regionHeight * regionWidth] |= m[x, y];
+                    caches[cROffset + x / regionWidth + y / regionHeight * regionWidth] |= m[x, y];
                 }
             }
 
@@ -124,18 +126,18 @@ namespace Sudoku.Games
             {
                 for (int region = 0; region < m.Width; region++)
                 {
-                    if ((caches[cRoffset + region] & (1 << digit)) != 0) continue;
-                    for (int x = region * regionWidth; x < region * regionWidth + regionWidth; x++)
+                    if ((caches[cROffset + region] & (1 << digit)) != 0) continue;
+                    for (int x = region % regionHeight * regionWidth; x < region % regionHeight * regionWidth + regionWidth; x++)
                     {
-                        if ((caches[x] & 1 << digit) != 0) continue;
+                        if ((caches[x] & (1 << digit)) != 0) continue;
                         for (int y = region / regionWidth * regionHeight; y < region / regionWidth * regionHeight + regionHeight; y++)
                         {
-                            if ((caches[cCOffset + y] & 1 << digit) != 0 && m[x, y] != 0) continue;
+                            if (((caches[cCOffset + y] & (1 << digit)) != 0) || (m[x, y] != 0)) continue;
                             m[x, y] = 1 << digit;
                             caches[x] |= m[x, y];
                             caches[cCOffset + y] |= m[x, y];
-                            caches[cRoffset + x / regionWidth + y / regionHeight * regionWidth] |= m[x, y];
-                            goto regionfilled; // yes, this is satan's offspring, I've done worse
+                            caches[cROffset + x / regionWidth + y / regionHeight * regionWidth] |= m[x, y];
+                            goto regionfilled; // yes, this is satan's offspring, but I've done worse
                         }
                     }
                 regionfilled:;
@@ -143,11 +145,6 @@ namespace Sudoku.Games
             }
 
             m.ToMatrix().Print();
-
-            for (int i = 0; i < caches.Length; i++)
-            {
-                Console.WriteLine(caches[i]);
-            }
 
             return true;
         }

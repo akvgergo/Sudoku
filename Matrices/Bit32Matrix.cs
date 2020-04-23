@@ -40,10 +40,10 @@ namespace Sudoku.Matrices
         /// 
         /// That's dog slow.
         /// 
-        /// We're making the assumption that all values have a Hamming weight of 1 or 0, since only then is it possible to
+        /// We're making the kassumption that all values have a Hamming weight of 1 or 0, since only then is it possible to
         /// do the conversion backwards. In that case, a binary search algorithm on the bits would be ideal, but let's assume
         /// we have the memory space for mapping instead. If we do have the cache space that'll be a lot faster, since we might have
-        /// matrixes with hundreds of fields.
+        /// matrices with hundreds of fields.
         /// 
         /// Of course, we can't just make a map with 32 bit integers, that would be huge. So we need a way to get a small and unique
         /// value for all the 33 possible cases.

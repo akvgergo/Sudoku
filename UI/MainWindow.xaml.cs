@@ -25,10 +25,8 @@ namespace Sudoku.UI
         public MainWindow()
         {
             InitializeComponent();
-
-            QuickRand rnd = new QuickRand();
-
-            ClassicSudoku s = new ClassicSudoku(null, regionWidth:2, regionHeight:2);
+            
+            ClassicSudoku s = new ClassicSudoku(null, regionWidth:3, regionHeight:3);
 
         }
     }
