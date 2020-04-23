@@ -38,14 +38,14 @@ namespace Sudoku.Util
 
         /// <summary>
         /// Creates a new <see cref="QuickRand"/>, using the current time as a seed.
+        /// It is recommended to use <see cref="CreateSecure()"/> instead for better seeding.
         /// </summary>
         public QuickRand()
         {
             store1 = (ulong)Environment.TickCount;
+            store2 = (ulong)Environment.TickCount;
 
             //we need a bit of shuffling since TickCount is a bit low
-            Getulong();
-            Getulong();
             Getulong();
             Getulong();
             Getulong();
@@ -67,7 +67,7 @@ namespace Sudoku.Util
         public QuickRand(string seed) : this(Convert.FromBase64String(seed)) { }
 
         /// <summary>
-        /// Creates a new <see cref="QuickRand"/> and uses the given <see cref="byte[]"/> as a seed.
+        /// Creates a new <see cref="QuickRand"/> and uses the given <see cref="byte"/>[] as a seed.
         /// </summary>
         /// <param name="seed">The seed data. Must be 16 bytes.</param>
         public unsafe QuickRand(byte[] seed)
@@ -178,6 +178,7 @@ namespace Sudoku.Util
         {
             return (int)(Getuint() % (max - min)) + min;
         }
+
         /// <summary>
         /// Gets the seed values of the current instance.
         /// </summary>
@@ -189,7 +190,6 @@ namespace Sudoku.Util
         /// <summary>
         /// Returns a base64 encoded string that stores the seeds of the current instance
         /// </summary>
-        /// <returns></returns>
         public unsafe string GetStateString()
         {
             byte[] buffer = new byte[16];

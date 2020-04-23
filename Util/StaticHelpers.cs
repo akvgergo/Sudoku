@@ -105,6 +105,8 @@ namespace Sudoku.Util
         /// </remarks>
         public unsafe static int Q_PopCnt(ulong N)
         {
+            //Bask in the unholy light of thy stillborn child
+            //unlimited magic numbers
             N -= (N >> 1) & 0x5555555555555555;
             N = (N & 0x3333333333333333) + ((N >> 2) & 0x3333333333333333);
             N = (N + (N >> 4)) & 0x0f0f0f0f0f0f0f0f;

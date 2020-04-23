@@ -28,10 +28,7 @@ namespace Sudoku.UI
 
             QuickRand rnd = new QuickRand();
 
-            for (int i = 0; i < 100; i++)
-            {
-                Console.WriteLine(rnd.GetRange(-200, 60));
-            }
+            ClassicSudoku s = new ClassicSudoku(null, regionWidth:2, regionHeight:2);
 
         }
     }
