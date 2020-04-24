@@ -160,7 +160,7 @@ namespace Sudoku.Util
         }
 
         /// <summary>
-        /// Generates a random <see cref="ulong"/> in the specified range.
+        /// Generates a random <see cref="uint"/> in the specified range.
         /// </summary>
         /// <param name="min">The inclusive lower bound.</param>
         /// <param name="max">The exclusive higher bound.</param>
@@ -170,7 +170,7 @@ namespace Sudoku.Util
         }
 
         /// <summary>
-        /// Generates a random <see cref="ulong"/> in the specified range.
+        /// Generates a random <see cref="int"/> in the specified range.
         /// </summary>
         /// <param name="min">The inclusive lower bound.</param>
         /// <param name="max">The exclusive higher bound.</param>

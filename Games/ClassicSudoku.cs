@@ -85,12 +85,12 @@ namespace Sudoku.Games
 
 
 
-            matrix.Print();
-            if (!GenerateFromPartial(matrix, rnd)) throw new Exception("Logic error, we screwed.");
+            matrix.ToMatrix().Print();
+            if (!GenerateFromPartial(matrix, regionWidth, regionHeight, rnd)) throw new Exception("Logic error, we screwed.");
 
             innerMatrix = matrix.ToMatrix();
         }
-
+        
         /// <summary>
         /// Generates a complete puzzle from the provided partially filled matrix.
         /// </summary>
@@ -99,16 +99,13 @@ namespace Sudoku.Games
         /// A <see cref="bool"/> indicating whether the algorithm was successful. The operation may fail if the matrix is overfilled
         /// or isn't valid as a puzzle with the already filled values.
         /// </returns>
-        public static bool GenerateFromPartial(Bit32Matrix m, QuickRand rnd)
+        public static bool GenerateFromPartial(Bit32Matrix m, int regionWidth, int regionHeight, QuickRand rnd)
         {
             //all caches should be the same size, the only way this isn't generateable from say, an empty matrix
             //is if we get an exceptionally stupid size argument or a prime MaxVal.
             int[] caches = new int[m.Width * 3];
             int cCOffset = m.Width, cROffset = m.Width * 2;
-            //Region sizes
-            var regions = GetRegionSize(m.Width);
-            int regionWidth = regions.width, regionHeight = regions.height;
-
+            
             //Fill the caches with values.
             for (int x = 0; x < m.Width; x++)
             {
@@ -116,7 +113,7 @@ namespace Sudoku.Games
                 {
                     caches[x] |= m[x, y];
                     caches[cCOffset + y] |= m[x, y];
-                    caches[cROffset + x / regionWidth + y / regionHeight * regionWidth] |= m[x, y];
+                    caches[cROffset + x / regionWidth + y / regionHeight * regionHeight] |= m[x, y];
                 }
             }
 
@@ -130,17 +127,20 @@ namespace Sudoku.Games
                     for (int x = region % regionHeight * regionWidth; x < region % regionHeight * regionWidth + regionWidth; x++)
                     {
                         if ((caches[x] & (1 << digit)) != 0) continue;
-                        for (int y = region / regionWidth * regionHeight; y < region / regionWidth * regionHeight + regionHeight; y++)
+                        for (int y = region / regionHeight * regionHeight; y < region / regionHeight * regionHeight + regionHeight; y++)
                         {
                             if (((caches[cCOffset + y] & (1 << digit)) != 0) || (m[x, y] != 0)) continue;
                             m[x, y] = 1 << digit;
+                            m.ToMatrix().Print();
                             caches[x] |= m[x, y];
                             caches[cCOffset + y] |= m[x, y];
-                            caches[cROffset + x / regionWidth + y / regionHeight * regionWidth] |= m[x, y];
+                            caches[cROffset + x / regionWidth + y / regionHeight * regionHeight] |= m[x, y];
                             goto regionfilled; // yes, this is satan's offspring, but I've done worse
                         }
                     }
-                regionfilled:;
+
+
+                    regionfilled:;
                 }
             }
 

@@ -26,7 +26,7 @@ namespace Sudoku.UI
         {
             InitializeComponent();
             
-            ClassicSudoku s = new ClassicSudoku(null, regionWidth:3, regionHeight:3);
+            ClassicSudoku s = new ClassicSudoku("tjULAm7+9Zk4hs29GJ8o/Q==", regionWidth:3, regionHeight:2);
 
         }
     }

@@ -1,0 +1,669 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Sudoku</name>
+    </assembly>
+    <members>
+        <member name="T:Sudoku.Games.ClassicSudoku">
+            <summary>
+            A sudoku puzzle with the classic row, column, and square region constraints. Can be a custom unconventional size.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Games.ClassicSudoku.#ctor(System.String,System.Int32,System.Int32)">
+            <summary>
+            Generate a new Sudoku with the classic ruleset.
+            </summary>
+            <param name="seed">The seed to generate the puzzle with.</param>
+            <param name="regionWidth">The width of a single region. The final size will be Width * Height.</param>
+            <param name="regionHeight">The height of a single region. The final size will be Width * Height.</param>
+        </member>
+        <member name="M:Sudoku.Games.ClassicSudoku.GenerateFromPartial(Sudoku.Matrices.Bit32Matrix,System.Int32,System.Int32,Sudoku.Util.QuickRand)">
+            <summary>
+            Generates a complete puzzle from the provided partially filled matrix.
+            </summary>
+            <param name="m">The partially filled matrix to create a proper puzzle from.</param>
+            <returns>
+            A <see cref="T:System.Boolean"/> indicating whether the algorithm was successful. The operation may fail if the matrix is overfilled
+            or isn't valid as a puzzle with the already filled values.
+            </returns>
+        </member>
+        <member name="M:Sudoku.Games.ClassicSudoku.GetRegionSize(System.Int32)">
+            <summary>
+            Returns the width and height of a Sudoku, calculated from the maximum field values.
+            </summary>
+            <param name="MaxValue">The highest value a field can have.</param>
+            <returns>A tuple containing the width and height of a single region.</returns>
+            <remarks>
+            Side effect of making the generator self-contained. Note that this returns the value that
+            "makes the most sense". The method asks for a Maxval, but it could also ask for width and height, or
+            a single dimension if we always assume a perfect square, but with more flexibility comes
+            a few logic issues, and some decisions to make.
+            
+            If we asked for dimensions instead, we could make the argument that an 8x8 Sudoku with 4 4x4 regions is perfectly
+            legal, since of course we could choose from 16 values to fit into that 8 for rows and columns, and there would be no
+            need to use the same value twice. There are a few configurations where this issue could arise and not just with squares,
+            so better to lay down the rule that we *need* to use all numbers.
+            
+            So MaxVal is better in that regard. But is it better to make a say 12x12 grid into 12 3x4, or 12 2x6.
+            The former of course makes more sense, but the better question is, what if we *want* a 2x6 RegionSize?
+            It could be perfect for a multi-Sudoku later, or some other interesting game variant.
+            
+            When we make things more abstract, easier to use, and above all flexible, we may run into similar issues.
+            Multiple solutions that are better for some cases than others. The idea of making GeneratorArgs a thing was born
+            while writing this method.
+            
+            So yes, there is sometimes no cover-all answer, or we just don't want it, while a default behaviour makes sense.
+            This method should return the answer that is the most logical, in our case the two least further apart numbers that when
+            multiplied together give MaxVal. I might never use it, but it helped think to write it, so here it is.
+            
+            For the love of all that is holy, prime check the input.
+            </remarks>
+        </member>
+        <member name="T:Sudoku.Util.QuickRand">
+            <summary>
+            A xorshift PRNG, specifically xorshift+. Full range 32 or 64 bits, watch out for negative values.
+            </summary>
+            <remarks>
+            The traditional .NET <see cref="T:System.Random"/> is both slow and has a relatively small range (2^31).
+            This is a faster and more ideal implementation, since security is no concern, we just want speed and range.
+            It's just a xorshift lfsr, using the first algorithm that seemed good enough both looking at it and after
+            some console output tests.
+            
+            The reality is, we basically want to generate matrixes and I could go insane searching for an algorithm
+            that's fast and good for that. Let's just go for speed and simplicity instead.
+            
+            We also prefer pointer math over built in functions or converting, because conversion methods are slow
+            and things like math.abs needs branch prediction, which would be prone to have a 50% fail...
+            
+            Pretty much like everything in the project, it's not stupid proofed, use your head.
+            </remarks>
+        </member>
+        <member name="F:Sudoku.Util.QuickRand.cryptoProv">
+            <summary>
+            Basically the only way to properly get 16 random bytes that doesn't run into pigeon hole.
+            </summary>
+        </member>
+        <member name="F:Sudoku.Util.QuickRand.store1">
+            <summary>
+            The seeds.
+            </summary>
+        </member>
+        <member name="F:Sudoku.Util.QuickRand.store2">
+            <summary>
+            The seeds.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Util.QuickRand.#ctor">
+            <summary>
+            Creates a new <see cref="T:Sudoku.Util.QuickRand"/>, using the current time as a seed.
+            It is recommended to use <see cref="M:Sudoku.Util.QuickRand.CreateSecure"/> instead for better seeding.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Util.QuickRand.#ctor(System.UInt64,System.UInt64)">
+            <summary>
+            Creates a new <see cref="T:Sudoku.Util.QuickRand"/> with the specified seed pair.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Util.QuickRand.#ctor(System.String)">
+            <summary>
+            Creates a new <see cref="T:Sudoku.Util.QuickRand"/> using the given string as a seed.
+            </summary>
+            <param name="seed">A base64 encoded string.</param>
+        </member>
+        <member name="M:Sudoku.Util.QuickRand.#ctor(System.Byte[])">
+            <summary>
+            Creates a new <see cref="T:Sudoku.Util.QuickRand"/> and uses the given <see cref="T:System.Byte"/>[] as a seed.
+            </summary>
+            <param name="seed">The seed data. Must be 16 bytes.</param>
+        </member>
+        <member name="M:Sudoku.Util.QuickRand.CreateSecure">
+            <summary>
+            Creates a new instance using bytes generated by <see cref="T:System.Security.Cryptography.RNGCryptoServiceProvider"/>.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Util.QuickRand.Getulong">
+            <summary>
+            Generates a random <see cref="T:System.UInt64"/>.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Util.QuickRand.Getuint">
+            <summary>
+            Generates a random <see cref="T:System.UInt32"/>.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Util.QuickRand.Getlong">
+            <summary>
+            Generates a random <see cref="T:System.Int64"/>.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Util.QuickRand.Getint">
+            <summary>
+            Generates a random <see cref="T:System.Int32"/>.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Util.QuickRand.GetRange(System.UInt64,System.UInt64)">
+            <summary>
+            Generates a random <see cref="T:System.UInt64"/> in the specified range.
+            </summary>
+            <param name="min">The inclusive lower bound.</param>
+            <param name="max">The exclusive higher bound.</param>
+        </member>
+        <member name="M:Sudoku.Util.QuickRand.GetRange(System.Int64,System.Int64)">
+            <summary>
+            Generates a random <see cref="T:System.Int64"/> in the specified range.
+            </summary>
+            <param name="min">The inclusive lower bound.</param>
+            <param name="max">The exclusive higher bound.</param>
+        </member>
+        <member name="M:Sudoku.Util.QuickRand.GetRange(System.UInt32,System.UInt32)">
+            <summary>
+            Generates a random <see cref="T:System.UInt32"/> in the specified range.
+            </summary>
+            <param name="min">The inclusive lower bound.</param>
+            <param name="max">The exclusive higher bound.</param>
+        </member>
+        <member name="M:Sudoku.Util.QuickRand.GetRange(System.Int32,System.Int32)">
+            <summary>
+            Generates a random <see cref="T:System.Int32"/> in the specified range.
+            </summary>
+            <param name="min">The inclusive lower bound.</param>
+            <param name="max">The exclusive higher bound.</param>
+        </member>
+        <member name="M:Sudoku.Util.QuickRand.GetState">
+            <summary>
+            Gets the seed values of the current instance.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Util.QuickRand.GetStateString">
+            <summary>
+            Returns a base64 encoded string that stores the seeds of the current instance
+            </summary>
+        </member>
+        <member name="M:Sudoku.Util.StaticHelpers.PopRandom``1(System.Collections.Generic.ICollection{``0},Sudoku.Util.QuickRand)">
+            <summary>
+            Removes a random member of a collection and returns the removed element. The elements should ideally be unique.
+            </summary>
+            <param name="collection">The <see cref="T:System.Collections.Generic.ICollection`1"/> to choose the element from.</param>
+            <param name="rnd">The RNG to choose the element.</param>
+            <returns></returns>
+        </member>
+        <member name="M:Sudoku.Util.StaticHelpers.Shuffle``1(System.Collections.Generic.IList{``0},Sudoku.Util.QuickRand,System.Int32)">
+            <summary>
+            Shuffles the elements of the given <see cref="T:System.Collections.Generic.IList`1"/>.
+            </summary>
+            <param name="list">The list that should be shuffled.</param>
+            <param name="rnd">The RNG to use for the operation.</param>
+            <param name="iterations">The number of swaps to perform. Non-positive will shuffle for twice the list size.</param>
+        </member>
+        <member name="M:Sudoku.Util.StaticHelpers.PopCnt(System.UInt64)">
+            <summary>
+            Returns the Hamming Weight of the given <see cref="T:System.UInt64"/>.
+            Uses Wegner's tactic, faster if very few bits are expected to be set.
+            </summary>
+            <param name="N">The value to count the bits from.</param>
+            <returns>The population count.</returns>
+        </member>
+        <member name="M:Sudoku.Util.StaticHelpers.PopCnt(System.Int64)">
+            <summary>
+            Returns the Hamming Weight of the given <see cref="T:System.Int64"/>.
+            Uses Wegner's tactic, faster if very few bits are expected to be set.
+            </summary>
+            <param name="N">The value to count the bits from.</param>
+            <returns>The population count.</returns>
+        </member>
+        <member name="M:Sudoku.Util.StaticHelpers.PopCnt(System.Int32)">
+            <summary>
+            Returns the Hamming Weight of the given <see cref="T:System.Int32"/>.
+            Uses Wegner's tactic, faster if very few bits are expected to be set.
+            </summary>
+            <param name="N">The value to count the bits from.</param>
+            <returns>The population count.</returns>
+        </member>
+        <member name="M:Sudoku.Util.StaticHelpers.PopCnt(System.UInt32)">
+            <summary>
+            Returns the Hamming Weight of the given <see cref="T:System.UInt32"/>.
+            Uses Wegner's tactic, faster if very few bits are expected to be set.
+            </summary>
+            <param name="N">The value to count the bits from.</param>
+            <returns>The population count.</returns>
+        </member>
+        <member name="M:Sudoku.Util.StaticHelpers.Q_PopCnt(System.UInt64)">
+            <summary>
+            Returns the Hamming Weight of the given <see cref="T:System.UInt64"/>.
+            Uses the fastest possible implementation that's not vectorized or a built in CPU instruction,
+            should be used if the value is expected to be high.
+            </summary>
+            <param name="N">The value to count the bits from.</param>
+            <returns>The population count.</returns>
+            <remarks>
+            Practically copied from wikipedia, see the details there.
+            </remarks>
+        </member>
+        <member name="M:Sudoku.Util.StaticHelpers.Q_PopCnt(System.Int64)">
+            <summary>
+            Returns the Hamming Weight of the given <see cref="T:System.Int64"/>.
+            Uses the fastest possible implementation that's not vectorized or a built in CPU instruction,
+            should be used if the value is expected to be high.
+            </summary>
+            <param name="N">The value to count the bits from.</param>
+            <returns>The population count.</returns>
+        </member>
+        <member name="M:Sudoku.Util.StaticHelpers.Q_PopCnt(System.UInt32)">
+            <summary>
+            Returns the Hamming Weight of the given <see cref="T:System.UInt32"/>.
+            Uses the fastest possible implementation that's not vectorized or a built in CPU instruction,
+            should be used if the value is expected to be high.
+            </summary>
+            <param name="N">The value to count the bits from.</param>
+            <returns>The population count.</returns>
+        </member>
+        <member name="M:Sudoku.Util.StaticHelpers.Q_PopCnt(System.Int32)">
+            <summary>
+            Returns the Hamming Weight of the given <see cref="T:System.Int32"/>.
+            Uses the fastest possible implementation that's not vectorized or a built in CPU instruction,
+            should be used if the value is expected to be high.
+            </summary>
+            <param name="N">The value to count the bits from.</param>
+            <returns>The population count.</returns>
+        </member>
+        <member name="T:Sudoku.App">
+            <summary>
+            Interaction logic for App.xaml
+            </summary>
+            <summary>
+            App
+            </summary>
+        </member>
+        <member name="M:Sudoku.App.InitializeComponent">
+            <summary>
+            InitializeComponent
+            </summary>
+        </member>
+        <member name="M:Sudoku.App.Main">
+            <summary>
+            Application Entry Point.
+            </summary>
+        </member>
+        <member name="T:Sudoku.Matrices.Bit32Matrix">
+            <summary>
+            A matrix that stores it's values as powers of 2, with a singe offset. The backbone of most Sudoku logic
+            that are faster to do as bit operations.
+            </summary>
+        </member>
+        <member name="F:Sudoku.Matrices.Bit32Matrix.ConversionMap">
+            <summary>
+            Used by the <see cref="M:Sudoku.Matrices.Bit32Matrix.ToMatrix"/> method. Lazy initialized and uses bytes for less memory overhead.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Matrices.Bit32Matrix.#ctor(System.Int32,System.Int32)">
+            <summary>
+            Create a new <see cref="T:Sudoku.Matrices.Bit32Matrix"/> with the specified size.
+            </summary>
+            <param name="width">The width of the matrix.</param>
+            <param name="height">The height of the matrix.</param>
+        </member>
+        <member name="M:Sudoku.Matrices.Bit32Matrix.#ctor(System.Int32[0:,0:])">
+            <summary>
+            Create a new <see cref="T:Sudoku.Matrices.Bit32Matrix"/> with the given backing array.
+            </summary>
+            <param name="fields">The two dimensional array for the matrix.</param>
+        </member>
+        <member name="M:Sudoku.Matrices.Bit32Matrix.ToMatrix">
+            <summary>
+            Converts the current <see cref="T:Sudoku.Matrices.Bit32Matrix"/> to a standard <see cref="T:Sudoku.Matrices.Matrix"/>.
+            </summary>
+            <returns>A <see cref="T:Sudoku.Matrices.Matrix"/> with the values of the current instance.</returns>
+            <remarks>
+            The obvious solution here would be logarithm, since mathematically,
+            we would like to know the current power of 2 a value represents.
+            
+            That's dog slow.
+            
+            We're making the kassumption that all values have a Hamming weight of 1 or 0, since only then is it possible to
+            do the conversion backwards. In that case, a binary search algorithm on the bits would be ideal, but let's assume
+            we have the memory space for mapping instead. If we do have the cache space that'll be a lot faster, since we might have
+            matrices with hundreds of fields.
+            
+            Of course, we can't just make a map with 32 bit integers, that would be huge. So we need a way to get a small and unique
+            value for all the 33 possible cases.
+            
+            Basically, a pseudo-hashmap.
+            Doing modulo with a prime that's larger than 33 will give small and unique values for each case. 37 will do.
+            
+            We are not using a conventional Dictionary to avoid overhead, since that's a lot more complex 
+            and the function calls and memory space for "buckets" together would make the binary search preferable.
+            
+            Yes, it would be easier. Yes, I could've typed out a switch with 33 cases by the time I figured and typed this out.
+            But where's the fun in that?
+            </remarks>
+        </member>
+        <member name="T:Sudoku.Matrices.Bit64Matrix">
+            <summary>
+            A matrix that stores it's values as powers of 2, with a singe offset. The backbone of most Sudoku logic
+            that are faster to do as bit operations. Used for larger Sudokus.
+            </summary>
+        </member>
+        <member name="F:Sudoku.Matrices.Bit64Matrix.ConversionMap">
+            <summary>
+            Used by the <see cref="M:Sudoku.Matrices.Bit64Matrix.ToMatrix"/> method. Lazy initialized and uses bytes for less memory overhead.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Matrices.Bit64Matrix.#ctor(System.Int32,System.Int32)">
+            <summary>
+            Create a new <see cref="T:Sudoku.Matrices.Bit64Matrix"/> with the specified size.
+            </summary>
+            <param name="width">The width of the matrix.</param>
+            <param name="height">The height of the matrix.</param>
+        </member>
+        <member name="M:Sudoku.Matrices.Bit64Matrix.#ctor(System.Int64[0:,0:])">
+            <summary>
+            Create a new <see cref="T:Sudoku.Matrices.Bit64Matrix"/> with the given backing array.
+            </summary>
+            <param name="fields">The two dimensional array for the matrix.</param>
+        </member>
+        <member name="M:Sudoku.Matrices.Bit64Matrix.ToMatrix">
+            <summary>
+            Converts the current <see cref="T:Sudoku.Matrices.Bit64Matrix"/> to a standard <see cref="T:Sudoku.Matrices.Matrix"/>.
+            </summary>
+            <returns>A <see cref="T:Sudoku.Matrices.Matrix"/> with the values of the current instance.</returns>
+            <remarks>See <see cref="M:Sudoku.Matrices.Bit32Matrix.ToMatrix"/> for implementation details.</remarks>
+        </member>
+        <member name="T:Sudoku.Matrices.ByteMatrix">
+            <summary>
+            A variable size matrix that stores each value as a <see cref="T:System.Byte"/>. Slower, but useful when memory footprint is a concern.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Matrices.ByteMatrix.Item(System.Int32,System.Int32)">
+            <summary>
+            Access the field at the specified coordinates. Conversion is done automatically.
+            </summary>
+            <param name="x">The x component of the coordinate.</param>
+            <param name="y">The y component of the coordinate.</param>
+            <returns>The value of the field converted to an <see cref="T:System.Int32"/> for convenience.</returns>
+        </member>
+        <member name="P:Sudoku.Matrices.ByteMatrix.Item(Sudoku.Point64)">
+            <summary>
+            Access the field at the specified coordinates. Conversion is done automatically.
+            </summary>
+            <param name="x">The x component of the coordinate.</param>
+            <param name="y">The y component of the coordinate.</param>
+            <returns>The value of the field converted to an <see cref="T:System.Int32"/> for convenience.</returns>
+        </member>
+        <member name="P:Sudoku.Matrices.ByteMatrix.Item(Sudoku.Point32)">
+            <summary>
+            Access the field at the specified coordinates. Conversion is done automatically.
+            </summary>
+            <param name="x">The x component of the coordinate.</param>
+            <param name="y">The y component of the coordinate.</param>
+            <returns>The value of the field converted to an <see cref="T:System.Int32"/> for convenience.</returns>
+        </member>
+        <member name="P:Sudoku.Matrices.ByteMatrix.Item(Sudoku.Point16)">
+            <summary>
+            Access the field at the specified coordinates. Conversion is done automatically.
+            </summary>
+            <param name="x">The x component of the coordinate.</param>
+            <param name="y">The y component of the coordinate.</param>
+            <returns>The value of the field converted to an <see cref="T:System.Int32"/> for convenience.</returns>
+        </member>
+        <member name="M:Sudoku.Matrices.ByteMatrix.#ctor(System.Int32,System.Int32)">
+            <summary>
+            Create a new <see cref="T:Sudoku.Matrices.ByteMatrix"/> with the specified size.
+            </summary>
+            <param name="width">The width of the matrix.</param>
+            <param name="height">The height of the matrix.</param>
+        </member>
+        <member name="M:Sudoku.Matrices.ByteMatrix.#ctor(System.Byte[0:,0:])">
+            <summary>
+            Create a new <see cref="T:Sudoku.Matrices.ByteMatrix"/> with the given backing array.
+            </summary>
+            <param name="fields">The two dimensional array for the matrix.</param>
+        </member>
+        <member name="M:Sudoku.Matrices.ByteMatrix.ToMatrix">
+            <summary>
+            Creates a new <see cref="T:Sudoku.Matrices.Matrix"/> with the values of the current one.
+            </summary>
+            <returns>A new uncompressed <see cref="T:Sudoku.Matrices.Matrix"/>.</returns>
+        </member>
+        <member name="T:Sudoku.Matrices.Matrix">
+            <summary>
+            A simple variable size <see cref="T:System.Int32"/> matrix that can be a backend for any simple logic, mostly display.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Matrices.Matrix.#ctor(System.Int32,System.Int32)">
+            <summary>
+            Create a new <see cref="T:Sudoku.Matrices.Matrix"/> with the specified size.
+            </summary>
+            <param name="width">The width of the matrix.</param>
+            <param name="height">The height of the matrix.</param>
+        </member>
+        <member name="M:Sudoku.Matrices.Matrix.#ctor(System.Int32[0:,0:])">
+            <summary>
+            Create a new <see cref="T:Sudoku.Matrices.Matrix"/> with the given backing array.
+            </summary>
+            <param name="fields">The two dimensional array for the matrix.</param>
+        </member>
+        <member name="M:Sudoku.Matrices.Matrix.ToByteMatrix">
+            <summary>
+            Compresses the current matrix into a <see cref="T:Sudoku.Matrices.ByteMatrix"/>.
+            </summary>
+            <returns>A new <see cref="T:Sudoku.Matrices.ByteMatrix"/> filled with the values of the currrent <see cref="T:Sudoku.Matrices.Matrix"/>.</returns>
+        </member>
+        <member name="M:Sudoku.Matrices.Matrix.ToBit32Matrix">
+            <summary>
+            Creates a <see cref="T:Sudoku.Matrices.Bit32Matrix"/> from the current <see cref="T:Sudoku.Matrices.Matrix"/>.
+            </summary>
+            <returns>A new <see cref="T:Sudoku.Matrices.Bit32Matrix"/> filled with the values of the currrent <see cref="T:Sudoku.Matrices.Matrix"/>.</returns>
+        </member>
+        <member name="M:Sudoku.Matrices.Matrix.ToBit64Matrix">
+            <summary>
+            Creates a <see cref="T:Sudoku.Matrices.Bit64Matrix"/> from the current <see cref="T:Sudoku.Matrices.Matrix"/>.
+            </summary>
+            <returns>A new <see cref="T:Sudoku.Matrices.Bit64Matrix"/> filled with the values of the currrent <see cref="T:Sudoku.Matrices.Matrix"/>.</returns>
+        </member>
+        <member name="T:Sudoku.Matrices.MatrixBase`1">
+            <summary>
+            Base for most matrices. Sole purpose is to eliminate code repetition. Inheritors should be marked sealed for performance.
+            </summary>
+        </member>
+        <member name="F:Sudoku.Matrices.MatrixBase`1._fields">
+            <summary>
+            The values stored in the matrix.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Matrices.MatrixBase`1.Width">
+            <summary>
+            The width of the matrix.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Matrices.MatrixBase`1.Height">
+            <summary>
+            The height of the matrix.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Matrices.MatrixBase`1.FieldCount">
+            <summary>
+            The total field count of the matrix.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Matrices.MatrixBase`1.Item(System.Int32,System.Int32)">
+            <summary>
+            Access the field at the specified coordinates.
+            </summary>
+            <param name="x">The x component of the coordinate.</param>
+            <param name="y">The y component of the coordinate.</param>
+            <returns>The value of the field.</returns>
+        </member>
+        <member name="P:Sudoku.Matrices.MatrixBase`1.Item(Sudoku.Point64)">
+            <summary>
+            Access the field at the specified coordinate.
+            </summary>
+            <param name="p">The specified coordinate.</param>
+            <returns>The value of the field.</returns>
+        </member>
+        <member name="P:Sudoku.Matrices.MatrixBase`1.Item(Sudoku.Point32)">
+            <summary>
+            Access the field at the specified coordinate.
+            </summary>
+            <param name="p">The specified coordinate.</param>
+            <returns>The value of the field.</returns>
+        </member>
+        <member name="P:Sudoku.Matrices.MatrixBase`1.Item(Sudoku.Point16)">
+            <summary>
+            Access the field at the specified coordinate.
+            </summary>
+            <param name="p">The specified coordinate.</param>
+            <returns>The value of the field.</returns>
+        </member>
+        <member name="M:Sudoku.Matrices.MatrixBase`1.#ctor(System.Int32,System.Int32)">
+            <summary>
+            Creates a new matrix with the specified size.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Matrices.MatrixBase`1.#ctor(`0[0:,0:])">
+            <summary>
+            Creates a new matrix from the given backing array. The array is not copied,
+            if that is your use a method instead.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Matrices.MatrixBase`1.GetBackingArray">
+            <summary>
+            Returns a reference to the backing array for direct operations.
+            </summary>
+            <returns>The 2 dimensional array that stores the matrix's values.</returns>
+        </member>
+        <member name="M:Sudoku.Matrices.MatrixBase`1.Print">
+            <summary>
+            [Debug] Prints the stored values to the output stream
+            </summary>
+        </member>
+        <member name="T:Sudoku.ISudoku">
+            <summary>
+            Represents a game of Sudoku.
+            </summary>
+        </member>
+        <member name="P:Sudoku.ISudoku.FieldCount">
+            <summary>
+            The total number of Fields or "tiles" this Sudoku contains. The size of the puzzle.
+            </summary>
+        </member>
+        <member name="P:Sudoku.ISudoku.RowCount">
+            <summary>
+            The total number of Rows this Sudoku contains. The height of the puzzle.
+            </summary>
+        </member>
+        <member name="P:Sudoku.ISudoku.ColumnCount">
+            <summary>
+            The total number of Columns this Sudoku contains. The width of the the puzzle.
+            </summary>
+        </member>
+        <member name="P:Sudoku.ISudoku.MaxValue">
+            <summary>
+            The highest value a single field may contain. For a classic Sudoku, this would be 9.
+            </summary>
+        </member>
+        <member name="P:Sudoku.ISudoku.IsGenerated">
+            <summary>
+            Whether this Sudoku has been properly filled to completion by an algorithm
+            </summary>
+        </member>
+        <member name="P:Sudoku.ISudoku.IsReduced">
+            <summary>
+            Whether this Sudoku has been reduced, so that it is ready to be solved by a user
+            </summary>
+        </member>
+        <member name="P:Sudoku.ISudoku.IsUnique">
+            <summary>
+            Whether this Sudoku is guaranteed to be unique, meaning it has only one solution after reduction.
+            Ideally, this is always true.
+            </summary>
+        </member>
+        <member name="P:Sudoku.ISudoku.Seed">
+            <summary>
+            The seed this Sudoku was created with.
+            </summary>
+        </member>
+        <member name="P:Sudoku.ISudoku.MinFieldConstraints">
+            <summary>
+            Returns the minimum count of field constraints a given tile has (Region, row, column, diagonal, etc). 
+            </summary>
+        </member>
+        <member name="P:Sudoku.ISudoku.MaxFieldConstraints">
+            <summary>
+            Returns the maximum count of field constraints a given tile can have (Region, row, column, diagonal, etc). 
+            </summary>
+        </member>
+        <member name="M:Sudoku.ISudoku.GetConstraintCountForField(System.Int32,System.Int32)">
+            <summary>
+            Returns how many constraints (limiting areas such as rows, columns, regions...) a given field coordinate has.
+            </summary>
+            <param name="x">The x component of the coordinate.</param>
+            <param name="y">The Y component of the coordinate.</param>
+            <returns>An <see cref="T:System.Int32"/> count of all the constraints.</returns>
+        </member>
+        <member name="M:Sudoku.ISudoku.IsValidTile(System.Int32,System.Int32)">
+            <summary>
+            Determines whether the provided tile coordinate is a valid one for this Sudoku.
+            </summary>
+            <param name="x">The x component of the coordinate.</param>
+            <param name="y">The Y component of the coordinate.</param>
+            <returns>A <see cref="T:System.Boolean"/> that is true if the coordinate is valid.</returns>
+        </member>
+        <member name="M:Sudoku.ISudoku.GetMatrix">
+            <summary>
+            Returns a complete matrix filled with the current state of the Sudoku. 0 is empty field, -1 is invalid tile.
+            Changes to the returned <see cref="T:Sudoku.Matrices.Matrix"/> should be avoided, since it may be the actual backing matrix.
+            </summary>
+            <returns>A standard <see cref="T:Sudoku.Matrices.Matrix"/>.</returns>
+        </member>
+        <member name="M:Sudoku.ISudoku.CreateVisual">
+            <summary>
+            Creates a visual component tree that is capable of displaying the complete Sudoku for interaction with the User.
+            </summary>
+            <returns>A <see cref="T:System.Windows.Controls.Grid"/> object that is the root of the visual component tree.</returns>
+        </member>
+        <member name="T:Sudoku.UI.MainWindow">
+            <summary>
+            Interaction logic for MainWindow.xaml
+            </summary>
+            <summary>
+            MainWindow
+            </summary>
+        </member>
+        <member name="M:Sudoku.UI.MainWindow.InitializeComponent">
+            <summary>
+            InitializeComponent
+            </summary>
+        </member>
+        <member name="T:Sudoku.Point64">
+            <summary>
+            Two 32 bit integers representing a point.
+            </summary>
+        </member>
+        <member name="T:Sudoku.Point32">
+            <summary>
+            A single 32 bit integer representing a point.
+            </summary>
+        </member>
+        <member name="T:Sudoku.Point16">
+            <summary>
+            A 16 bit integer representing a point.
+            </summary>
+        </member>
+        <member name="T:Sudoku.Properties.Resources">
+            <summary>
+              A strongly-typed resource class, for looking up localized strings, etc.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Properties.Resources.ResourceManager">
+            <summary>
+              Returns the cached ResourceManager instance used by this class.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Properties.Resources.Culture">
+            <summary>
+              Overrides the current thread's CurrentUICulture property for all
+              resource lookups using this strongly typed resource class.
+            </summary>
+        </member>
+    </members>
+</doc>

@@ -109,11 +109,13 @@ namespace Sudoku.Matrices
         /// </summary>
         public void Print()
         {
+            //Yes, this is mirrored diagonally from top left
+            //will worry about it if it becomes a problem, last time I checked this changes nothing
             for (int x = 0; x < Width; x++)
             {
                 for (int y = 0; y < Height; y++)
                 {
-                    Console.Write(_fields[x, y].ToString() + " ");
+                    Console.Write(_fields[y, x].ToString() + " ");
                 }
                 Console.WriteLine();
             }
