@@ -43,111 +43,52 @@ namespace Sudoku.Util
         }
 
         /// <summary>
-        /// Returns the Hamming Weight of the given <see cref="ulong"/>.
-        /// Uses Wegner's tactic, faster if very few bits are expected to be set.
+        /// Returns the width and height of a Sudoku, calculated from the maximum field values.
         /// </summary>
-        /// <param name="N">The value to count the bits from.</param>
-        /// <returns>The population count.</returns>
-        public static int PopCnt(ulong N)
-        {
-            int value = 0;
-            while (N != 0)
-            {
-                N = (N - 1) & N;
-                value++;
-            }
-
-            return value;
-        }
-
-        /// <summary>
-        /// Returns the Hamming Weight of the given <see cref="long"/>.
-        /// Uses Wegner's tactic, faster if very few bits are expected to be set.
-        /// </summary>
-        /// <param name="N">The value to count the bits from.</param>
-        /// <returns>The population count.</returns>
-        public static unsafe int PopCnt(long N)
-        {
-            return PopCnt(*(ulong*)&N);
-        }
-
-        /// <summary>
-        /// Returns the Hamming Weight of the given <see cref="int"/>.
-        /// Uses Wegner's tactic, faster if very few bits are expected to be set.
-        /// </summary>
-        /// <param name="N">The value to count the bits from.</param>
-        /// <returns>The population count.</returns>
-        public static unsafe int PopCnt(int N)
-        {
-            return PopCnt(*(uint*)&N);
-        }
-
-        /// <summary>
-        /// Returns the Hamming Weight of the given <see cref="uint"/>.
-        /// Uses Wegner's tactic, faster if very few bits are expected to be set.
-        /// </summary>
-        /// <param name="N">The value to count the bits from.</param>
-        /// <returns>The population count.</returns>
-        public static int PopCnt(uint N)
-        {
-            return PopCnt((ulong)N);
-        }
-
-        /// <summary>
-        /// Returns the Hamming Weight of the given <see cref="ulong"/>.
-        /// Uses the fastest possible implementation that's not vectorized or a built in CPU instruction,
-        /// should be used if the value is expected to be high.
-        /// </summary>
-        /// <param name="N">The value to count the bits from.</param>
-        /// <returns>The population count.</returns>
+        /// <param name="MaxValue">The highest value a field can have.</param>
+        /// <returns>A tuple containing the width and height of a single region.</returns>
         /// <remarks>
-        /// Practically copied from wikipedia, see the details there.
+        /// Side effect of making the generator self-contained. Note that this returns the value that
+        /// "makes the most sense". The method asks for a Maxval, but it could also ask for width and height, or
+        /// a single dimension if we always assume a perfect square, but with more flexibility comes
+        /// a few logic issues, and some decisions to make.
+        /// 
+        /// If we asked for dimensions instead, we could make the argument that an 8x8 Sudoku with 4 4x4 regions is perfectly
+        /// legal, since of course we could choose from 16 values to fit into that 8 for rows and columns, and there would be no
+        /// need to use the same value twice. There are a few configurations where this issue could arise and not just with squares,
+        /// so better to lay down the rule that we *need* to use all numbers.
+        /// 
+        /// So MaxVal is better in that regard. But is it better to make a say 12x12 grid into 12 3x4, or 12 2x6.
+        /// The former of course makes more sense, but the better question is, what if we *want* a 2x6 RegionSize?
+        /// It could be perfect for a multi-Sudoku later, or some other interesting game variant.
+        /// 
+        /// When we make things more abstract, easier to use, and above all flexible, we may run into similar issues.
+        /// Multiple solutions that are better for some cases than others. The idea of making GeneratorArgs a thing was born
+        /// while writing this method.
+        /// 
+        /// So yes, there is sometimes no cover-all answer, or we just don't want it, while a default behaviour makes sense.
+        /// This method should return the answer that is the most logical, in our case the two least further apart numbers that when
+        /// multiplied together give MaxVal. I might never use it, but it helped think to write it, so here it is.
+        /// 
+        /// For the love of all that is holy, prime check the input.
         /// </remarks>
-        public unsafe static int Q_PopCnt(ulong N)
+        public static (int width, int height) GetRegionSize(int MaxValue)
         {
-            //Bask in the unholy light of thy stillborn child
-            //unlimited magic numbers
-            N -= (N >> 1) & 0x5555555555555555;
-            N = (N & 0x3333333333333333) + ((N >> 2) & 0x3333333333333333);
-            N = (N + (N >> 4)) & 0x0f0f0f0f0f0f0f0f;
-            N = (N * 0x0101010101010101) >> 56;
-            return *(int*)&N;
+            int sqrt = (int)Math.Floor(Math.Sqrt(MaxValue));
+            //a whole sqrt means we can abide traditional rules, best case
+            if (sqrt * sqrt == MaxValue) return (sqrt, sqrt);
+
+            //the least deviation from the sqrt will return the least further apart values.
+            int width = sqrt + 1;
+            while (width * sqrt != MaxValue)
+            {
+                if (width * sqrt > MaxValue)
+                    sqrt--;
+                else
+                    width++;
+            }
+            return (width, sqrt);
         }
 
-        /// <summary>
-        /// Returns the Hamming Weight of the given <see cref="long"/>.
-        /// Uses the fastest possible implementation that's not vectorized or a built in CPU instruction,
-        /// should be used if the value is expected to be high.
-        /// </summary>
-        /// <param name="N">The value to count the bits from.</param>
-        /// <returns>The population count.</returns>
-        public unsafe static int Q_PopCnt(long N)
-        {
-            return Q_PopCnt(*(ulong*)&N);
-        }
-
-        /// <summary>
-        /// Returns the Hamming Weight of the given <see cref="uint"/>.
-        /// Uses the fastest possible implementation that's not vectorized or a built in CPU instruction,
-        /// should be used if the value is expected to be high.
-        /// </summary>
-        /// <param name="N">The value to count the bits from.</param>
-        /// <returns>The population count.</returns>
-        public static int Q_PopCnt(uint N)
-        {
-            return Q_PopCnt((ulong)N);
-        }
-
-        /// <summary>
-        /// Returns the Hamming Weight of the given <see cref="int"/>.
-        /// Uses the fastest possible implementation that's not vectorized or a built in CPU instruction,
-        /// should be used if the value is expected to be high.
-        /// </summary>
-        /// <param name="N">The value to count the bits from.</param>
-        /// <returns>The population count.</returns>
-        public unsafe static int Q_PopCnt(int N)
-        {
-            return Q_PopCnt(*(uint*)&N);
-        }
     }
 }

@@ -9,7 +9,7 @@ namespace Sudoku.Matrices
     /// <summary>
     /// A simple variable size <see cref="int"/> matrix that can be a backend for any simple logic, mostly display.
     /// </summary>
-    sealed class Matrix : MatrixBase<int>
+    public sealed class Matrix : MatrixBase<int>
     {
         /// <summary>
         /// Create a new <see cref="Matrix"/> with the specified size.

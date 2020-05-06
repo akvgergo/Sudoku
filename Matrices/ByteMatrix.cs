@@ -9,7 +9,7 @@ namespace Sudoku.Matrices
     /// <summary>
     /// A variable size matrix that stores each value as a <see cref="byte"/>. Slower, but useful when memory footprint is a concern.
     /// </summary>
-    sealed class ByteMatrix : MatrixBase<byte>
+    public sealed class ByteMatrix : MatrixBase<byte>
     {
         /// <summary>
         /// Access the field at the specified coordinates. Conversion is done automatically.

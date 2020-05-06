@@ -14,7 +14,7 @@ namespace Sudoku
     /// <summary>
     /// Two 32 bit integers representing a point.
     /// </summary>
-    struct Point64
+    public struct Point64
     {
         public int X { get; set; }
         public int Y { get; set; }
@@ -29,7 +29,7 @@ namespace Sudoku
     /// <summary>
     /// A single 32 bit integer representing a point.
     /// </summary>
-    struct Point32
+    public struct Point32
     {
         int p;
         
@@ -55,7 +55,7 @@ namespace Sudoku
     /// <summary>
     /// A 16 bit integer representing a point.
     /// </summary>
-    struct Point16
+    public struct Point16
     {
         short p;
 

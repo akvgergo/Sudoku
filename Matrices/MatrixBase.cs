@@ -9,7 +9,7 @@ namespace Sudoku.Matrices
     /// <summary>
     /// Base for most matrices. Sole purpose is to eliminate code repetition. Inheritors should be marked sealed for performance.
     /// </summary>
-    abstract class MatrixBase<ValueT> where ValueT : struct
+    public abstract class MatrixBase<ValueT> where ValueT : struct
     {
         /// <summary>
         /// The values stored in the matrix.

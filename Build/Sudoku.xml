@@ -17,47 +17,335 @@
             <param name="regionWidth">The width of a single region. The final size will be Width * Height.</param>
             <param name="regionHeight">The height of a single region. The final size will be Width * Height.</param>
         </member>
-        <member name="M:Sudoku.Games.ClassicSudoku.GenerateFromPartial(Sudoku.Matrices.Bit32Matrix,System.Int32,System.Int32,Sudoku.Util.QuickRand)">
+        <member name="M:Sudoku.Games.ClassicSudoku.GenerateFromPartial(Sudoku.Matrices.Bit32Matrix,System.Int32,System.Int32)">
             <summary>
             Generates a complete puzzle from the provided partially filled matrix.
+            
+            This is baiscally a deterministic solver.
             </summary>
-            <param name="m">The partially filled matrix to create a proper puzzle from.</param>
+            <param name="m">
+            The partially filled matrix to create a proper puzzle from. The most ideal is to have a
+            certain number of regions completely filled.
+            </param>
             <returns>
             A <see cref="T:System.Boolean"/> indicating whether the algorithm was successful. The operation may fail if the matrix is overfilled
             or isn't valid as a puzzle with the already filled values.
             </returns>
         </member>
-        <member name="M:Sudoku.Games.ClassicSudoku.GetRegionSize(System.Int32)">
+        <member name="T:Sudoku.Games.SudokuBase32">
             <summary>
-            Returns the width and height of a Sudoku, calculated from the maximum field values.
+            Represents a game of Sudoku.
             </summary>
-            <param name="MaxValue">The highest value a field can have.</param>
-            <returns>A tuple containing the width and height of a single region.</returns>
+        </member>
+        <member name="P:Sudoku.Games.SudokuBase32.Matrix">
+            <summary>
+            The backing matrix to store the field values for internal operations.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Games.SudokuBase32.RNG">
+            <summary>
+            The internal RNG to use for all randomized operations.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Games.SudokuBase32.Caches">
+            <summary>
+            Stores the possible values for generation and reduction.
+            </summary>
             <remarks>
-            Side effect of making the generator self-contained. Note that this returns the value that
-            "makes the most sense". The method asks for a Maxval, but it could also ask for width and height, or
-            a single dimension if we always assume a perfect square, but with more flexibility comes
-            a few logic issues, and some decisions to make.
+            Alright, if you just glanced at the classes and all the stuff that I wrote so far
+            you may get the idea that a lot of it is unnecessary, but here is where it all gets pieced together.
             
-            If we asked for dimensions instead, we could make the argument that an 8x8 Sudoku with 4 4x4 regions is perfectly
-            legal, since of course we could choose from 16 values to fit into that 8 for rows and columns, and there would be no
-            need to use the same value twice. There are a few configurations where this issue could arise and not just with squares,
-            so better to lay down the rule that we *need* to use all numbers.
+            When you generate a Sudoku puzzle, any variant for that matter, you'll have a bunch of tiles and constraints
+            on those tiles, that define what value can go into that tile. Gross generalization, but should be true for every
+            game variant not too exotic.
             
-            So MaxVal is better in that regard. But is it better to make a say 12x12 grid into 12 3x4, or 12 2x6.
-            The former of course makes more sense, but the better question is, what if we *want* a 2x6 RegionSize?
-            It could be perfect for a multi-Sudoku later, or some other interesting game variant.
+            We would like to generate as many of the variants and valid games as possible. So randomly filling tiles and then solving it
+            should give the most entropy for a game. The backdraw of this is that it requires a solver algorithm,
+            but we would need one anyway for SudokuX for example, where generation with permutation is not possible.
+            We also need this to be generic, unless we want to go mad for each Sudoku variant. Pretty much the only algorithm
+            capable of this is brute force.
             
-            When we make things more abstract, easier to use, and above all flexible, we may run into similar issues.
-            Multiple solutions that are better for some cases than others. The idea of making GeneratorArgs a thing was born
-            while writing this method.
+            As the name suggests, that's a bit slow, but has many opportunities for optimization. What we'll be doing here
+            is a bit odd, but makes sense.
             
-            So yes, there is sometimes no cover-all answer, or we just don't want it, while a default behaviour makes sense.
-            This method should return the answer that is the most logical, in our case the two least further apart numbers that when
-            multiplied together give MaxVal. I might never use it, but it helped think to write it, so here it is.
+            Each value in the matrix will be represented by a bit in an integer. The only place where we have to convert will
+            be for actual display. 0 is unknown, invalid value, whatever is necessary in the context, everything else is a number,
+            specifically 2^(value - 1).
             
-            For the love of all that is holy, prime check the input.
+            The caches will be storing what numbers we have so far in the given constraint, so we don't have to search the entire
+            matrix for values. When we set a value in a matrix, the caches are also set. Later we can use these caches with some
+            bit operations to determine what values can go into a tile. Nice and O(1), as long as we can fit into 32 or 64 bits,
+            this will work well, the only exponential variable in the solving will be the actual size of the Sudoku. Can't really
+            dodge filling all the digits in the grid, or at the very least I'm not smart enough for that kind of deduction,
+            and it sure as hell wouldn't be this generic.
+            
+            All the inheritors just have to define how the caches work for the fields, and that's it, the solver does the rest,
+            but with a few caveats. When we are optimized to this level, virtual calls, regular calls, and inlining starts to
+            matter a lot. Unsafe code shoould be generally avoided, since that limits what JIT can get rid of. Also, seal and mark
+            for inlining everything that's possible or not stupid to do so.
             </remarks>
+        </member>
+        <member name="P:Sudoku.Games.SudokuBase32.FieldCount">
+            <summary>
+            The total number of Fields or "tiles" this Sudoku contains. The size of the puzzle.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Games.SudokuBase32.RowCount">
+            <summary>
+            The total number of Rows this Sudoku contains. The height of the puzzle.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Games.SudokuBase32.ColumnCount">
+            <summary>
+            The total number of Columns this Sudoku contains. The width of the the puzzle.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Games.SudokuBase32.MaxValue">
+            <summary>
+            The highest value a single field may contain. For a classic Sudoku, this would be 9.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Games.SudokuBase32.RegionWidth">
+            <summary>
+            Returns the width of a region in the current puzzle.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Games.SudokuBase32.RegionHeight">
+            <summary>
+            Returns the height of a region in the current puzzle.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Games.SudokuBase32.IsGenerated">
+            <summary>
+            Whether this Sudoku has been properly filled to completion by an algorithm
+            </summary>
+        </member>
+        <member name="P:Sudoku.Games.SudokuBase32.IsReduced">
+            <summary>
+            Whether this Sudoku has been reduced, so that it is ready to be solved by a user
+            </summary>
+        </member>
+        <member name="P:Sudoku.Games.SudokuBase32.IsUnique">
+            <summary>
+            Whether this Sudoku is guaranteed to be unique, meaning it has only one solution after reduction.
+            Ideally, this is always true.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Games.SudokuBase32.Seed">
+            <summary>
+            The seed this Sudoku was created with.
+            </summary>
+        </member>
+        <member name="P:Sudoku.Games.SudokuBase32.MinFieldConstraints">
+            <summary>
+            Returns the minimum count of field constraints a given tile has (Region, row, column, diagonal, etc). 
+            </summary>
+        </member>
+        <member name="P:Sudoku.Games.SudokuBase32.MaxFieldConstraints">
+            <summary>
+            Returns the maximum count of field constraints a given tile can have (Region, row, column, diagonal, etc). 
+            </summary>
+        </member>
+        <member name="M:Sudoku.Games.SudokuBase32.GetConstraintCountForField(System.Int32,System.Int32)">
+            <summary>
+            Returns how many constraints (limiting areas such as rows, columns, regions...) a given field coordinate has.
+            </summary>
+            <param name="x">The x component of the coordinate.</param>
+            <param name="y">The Y component of the coordinate.</param>
+            <returns>An <see cref="T:System.Int32"/> count of all the constraints.</returns>
+        </member>
+        <member name="M:Sudoku.Games.SudokuBase32.IsValidTile(System.Int32,System.Int32)">
+            <summary>
+            Determines whether the provided tile coordinate is a valid one for this Sudoku.
+            </summary>
+            <param name="x">The x component of the coordinate.</param>
+            <param name="y">The Y component of the coordinate.</param>
+            <returns>A <see cref="T:System.Boolean"/> that is true if the coordinate is valid.</returns>
+        </member>
+        <member name="M:Sudoku.Games.SudokuBase32.GetTileCache(System.Int32,System.Int32)">
+            <summary>
+            Returns the cached possible values for a given tile coord.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Games.SudokuBase32.AddTileCache(System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Adds the given value to the proper caches.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Games.SudokuBase32.RemoveTileCache(System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Removes the value from the proper caches. May make a mess if the value isn't there.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Games.SudokuBase32.CreateCaches">
+            <summary>
+            Creates the constraint caches that will be used for generation and reduction.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Games.SudokuBase32.GetMatrix">
+            <summary>
+            Returns a complete matrix filled with the current state of the Sudoku. 0 is empty field, -1 is invalid tile.
+            Changes to the returned <see cref="T:Sudoku.Matrices.Matrix"/> should be avoided, since it may be the actual backing matrix.
+            </summary>
+            <returns>A standard <see cref="T:Sudoku.Matrices.Matrix"/>.</returns>
+        </member>
+        <member name="M:Sudoku.Games.SudokuBase32.CreateVisual">
+            <summary>
+            Creates a visual component tree that is capable of displaying the complete Sudoku for interaction with the User.
+            </summary>
+            <returns>A <see cref="T:System.Windows.Controls.Grid"/> object that is the root of the visual component tree.</returns>
+        </member>
+        <member name="M:Sudoku.Games.SudokuBase32.BruteFill(System.Boolean)">
+            <summary>
+            Fills the entire matrix with values.
+            </summary>
+            <returns>Returns true if the algorithm succeeded, false if it failed.</returns>
+        </member>
+        <member name="T:Sudoku.Games.SudokuBase32.SolverTile">
+            <summary>
+            Used by the brutefill algorithm to keep track of field values.
+            </summary>
+        </member>
+        <member name="T:Sudoku.Util.BinaryMath">
+            <summary>
+            Contains static helper methods to manipulate bit data on atomic types.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Util.BinaryMath.#cctor">
+            <summary>
+            Yes, we dislike static constructors. But realistically, this is the best solution
+            right after having the values be hardcoded.
+            </summary>
+        </member>
+        <member name="M:Sudoku.Util.BinaryMath.PopCnt(System.UInt64)">
+            <summary>
+            Returns the Hamming Weight of the given <see cref="T:System.UInt64"/>.
+            Uses Wegner's tactic, faster if very few bits are expected to be set.
+            </summary>
+            <param name="N">The value to count the bits from.</param>
+            <returns>The population count.</returns>
+        </member>
+        <member name="M:Sudoku.Util.BinaryMath.PopCnt(System.Int64)">
+            <summary>
+            Returns the Hamming Weight of the given <see cref="T:System.Int64"/>.
+            Uses Wegner's tactic, faster if very few bits are expected to be set.
+            </summary>
+            <param name="N">The value to count the bits from.</param>
+            <returns>The population count.</returns>
+        </member>
+        <member name="M:Sudoku.Util.BinaryMath.PopCnt(System.Int32)">
+            <summary>
+            Returns the Hamming Weight of the given <see cref="T:System.Int32"/>.
+            Uses Wegner's tactic, faster if very few bits are expected to be set.
+            </summary>
+            <param name="N">The value to count the bits from.</param>
+            <returns>The population count.</returns>
+        </member>
+        <member name="M:Sudoku.Util.BinaryMath.PopCnt(System.UInt32)">
+            <summary>
+            Returns the Hamming Weight of the given <see cref="T:System.UInt32"/>.
+            Uses Wegner's tactic, faster if very few bits are expected to be set.
+            </summary>
+            <param name="N">The value to count the bits from.</param>
+            <returns>The population count.</returns>
+        </member>
+        <member name="M:Sudoku.Util.BinaryMath.Q_PopCnt(System.UInt64)">
+            <summary>
+            Returns the Hamming Weight of the given <see cref="T:System.UInt64"/>.
+            Uses the fastest possible implementation that's not vectorized or a built in CPU instruction,
+            should be used if the value is expected to be high.
+            </summary>
+            <param name="N">The value to count the bits from.</param>
+            <returns>The population count.</returns>
+            <remarks>
+            Practically copied from wikipedia, see the details there.
+            </remarks>
+        </member>
+        <member name="M:Sudoku.Util.BinaryMath.Q_PopCnt(System.Int64)">
+            <summary>
+            Returns the Hamming Weight of the given <see cref="T:System.Int64"/>.
+            Uses the fastest possible implementation that's not vectorized or a built in CPU instruction,
+            should be used if the value is expected to be high.
+            </summary>
+            <param name="N">The value to count the bits from.</param>
+            <returns>The population count.</returns>
+        </member>
+        <member name="M:Sudoku.Util.BinaryMath.Q_PopCnt(System.UInt32)">
+            <summary>
+            Returns the Hamming Weight of the given <see cref="T:System.UInt32"/>.
+            Uses the fastest possible implementation that's not vectorized or a built in CPU instruction,
+            should be used if the value is expected to be high.
+            </summary>
+            <param name="N">The value to count the bits from.</param>
+            <returns>The population count.</returns>
+        </member>
+        <member name="M:Sudoku.Util.BinaryMath.Q_PopCnt(System.Int32)">
+            <summary>
+            Returns the Hamming Weight of the given <see cref="T:System.Int32"/>.
+            Uses the fastest possible implementation that's not vectorized or a built in CPU instruction,
+            should be used if the value is expected to be high.
+            </summary>
+            <param name="N">The value to count the bits from.</param>
+            <returns>The population count.</returns>
+        </member>
+        <member name="M:Sudoku.Util.BinaryMath.GetBitPos(System.UInt32)">
+            <summary>
+            Gets the position of a single set bit in the given integer. 0 is no set bit, index starts at 1.
+            That was also a warning, invalid values will return invalid results.
+            </summary>
+            <param name="N">The integer with a hamming weight of 1 or 0.</param>
+            <returns>The 1-indexed position of the set bit, or 0 if there's no set bit.</returns>
+            <remarks>
+            Converting to the format we're using for performance, having a bit index represent a value is easy,
+            but doing it backwards is a bit harder.
+            
+            The obvious solution here would be logarithm, since mathematically,
+            we would like to know the current power of 2 a value represents.
+            
+            That's dog slow.
+            
+            We're making the assumption that all values have a Hamming weight of 1 or 0, since only then is it possible to
+            do the conversion backwards. In that case, a binary search algorithm on the bits would be ideal, but let's assume
+            we have the memory space for mapping instead. If we do have the cache space that'll be a lot faster, since we might have
+            matrices with hundreds of fields.
+            
+            Of course, we can't just make a map with 32 bit integers, that would be huge. So we need a way to get a small and unique
+            value for all the 33 possible cases.
+            
+            Basically, a pseudo-hashmap.
+            Doing modulo with a prime that's larger than 33 will give small and unique values for each case. 37 will do.
+            67 for 64 bits is also perfect.
+            
+            We are not using a conventional Dictionary to avoid overhead, since that's a lot more complex 
+            and the function calls and memory space for "buckets" together would make the binary search preferable.
+            
+            Yes, it would be easier. Yes, I could've typed out a switch with 33 cases by the time I figured and typed this out.
+            But where's the fun in that?
+            </remarks>
+        </member>
+        <member name="M:Sudoku.Util.BinaryMath.GetBitPos(System.Int32)">
+            <summary>
+            Gets the position of a single set bit in the given integer. 0 is no set bit, index starts at 1.
+            That was also a warning, invalid values will return invalid results.
+            </summary>
+            <param name="N">The integer with a hamming weight of 1 or 0.</param>
+            <returns>The 1-indexed position of the set bit, or 0 if there's no set bit.</returns>
+        </member>
+        <member name="M:Sudoku.Util.BinaryMath.GetBitPos(System.UInt64)">
+            <summary>
+            Gets the position of a single set bit in the given integer. 0 is no set bit, index starts at 1.
+            That was also a warning, invalid values will return invalid results.
+            </summary>
+            <param name="N">The integer with a hamming weight of 1 or 0.</param>
+            <returns>The 1-indexed position of the set bit, or 0 if there's no set bit.</returns>
+        </member>
+        <member name="M:Sudoku.Util.BinaryMath.GetBitPos(System.Int64)">
+            <summary>
+            Gets the position of a single set bit in the given integer. 0 is no set bit, index starts at 1.
+            That was also a warning, invalid values will return invalid results.
+            </summary>
+            <param name="N">The integer with a hamming weight of 1 or 0.</param>
+            <returns>The 1-indexed position of the set bit, or 0 if there's no set bit.</returns>
         </member>
         <member name="T:Sudoku.Util.QuickRand">
             <summary>
@@ -195,76 +483,37 @@
             <param name="rnd">The RNG to use for the operation.</param>
             <param name="iterations">The number of swaps to perform. Non-positive will shuffle for twice the list size.</param>
         </member>
-        <member name="M:Sudoku.Util.StaticHelpers.PopCnt(System.UInt64)">
+        <member name="M:Sudoku.Util.StaticHelpers.GetRegionSize(System.Int32)">
             <summary>
-            Returns the Hamming Weight of the given <see cref="T:System.UInt64"/>.
-            Uses Wegner's tactic, faster if very few bits are expected to be set.
+            Returns the width and height of a Sudoku, calculated from the maximum field values.
             </summary>
-            <param name="N">The value to count the bits from.</param>
-            <returns>The population count.</returns>
-        </member>
-        <member name="M:Sudoku.Util.StaticHelpers.PopCnt(System.Int64)">
-            <summary>
-            Returns the Hamming Weight of the given <see cref="T:System.Int64"/>.
-            Uses Wegner's tactic, faster if very few bits are expected to be set.
-            </summary>
-            <param name="N">The value to count the bits from.</param>
-            <returns>The population count.</returns>
-        </member>
-        <member name="M:Sudoku.Util.StaticHelpers.PopCnt(System.Int32)">
-            <summary>
-            Returns the Hamming Weight of the given <see cref="T:System.Int32"/>.
-            Uses Wegner's tactic, faster if very few bits are expected to be set.
-            </summary>
-            <param name="N">The value to count the bits from.</param>
-            <returns>The population count.</returns>
-        </member>
-        <member name="M:Sudoku.Util.StaticHelpers.PopCnt(System.UInt32)">
-            <summary>
-            Returns the Hamming Weight of the given <see cref="T:System.UInt32"/>.
-            Uses Wegner's tactic, faster if very few bits are expected to be set.
-            </summary>
-            <param name="N">The value to count the bits from.</param>
-            <returns>The population count.</returns>
-        </member>
-        <member name="M:Sudoku.Util.StaticHelpers.Q_PopCnt(System.UInt64)">
-            <summary>
-            Returns the Hamming Weight of the given <see cref="T:System.UInt64"/>.
-            Uses the fastest possible implementation that's not vectorized or a built in CPU instruction,
-            should be used if the value is expected to be high.
-            </summary>
-            <param name="N">The value to count the bits from.</param>
-            <returns>The population count.</returns>
+            <param name="MaxValue">The highest value a field can have.</param>
+            <returns>A tuple containing the width and height of a single region.</returns>
             <remarks>
-            Practically copied from wikipedia, see the details there.
+            Side effect of making the generator self-contained. Note that this returns the value that
+            "makes the most sense". The method asks for a Maxval, but it could also ask for width and height, or
+            a single dimension if we always assume a perfect square, but with more flexibility comes
+            a few logic issues, and some decisions to make.
+            
+            If we asked for dimensions instead, we could make the argument that an 8x8 Sudoku with 4 4x4 regions is perfectly
+            legal, since of course we could choose from 16 values to fit into that 8 for rows and columns, and there would be no
+            need to use the same value twice. There are a few configurations where this issue could arise and not just with squares,
+            so better to lay down the rule that we *need* to use all numbers.
+            
+            So MaxVal is better in that regard. But is it better to make a say 12x12 grid into 12 3x4, or 12 2x6.
+            The former of course makes more sense, but the better question is, what if we *want* a 2x6 RegionSize?
+            It could be perfect for a multi-Sudoku later, or some other interesting game variant.
+            
+            When we make things more abstract, easier to use, and above all flexible, we may run into similar issues.
+            Multiple solutions that are better for some cases than others. The idea of making GeneratorArgs a thing was born
+            while writing this method.
+            
+            So yes, there is sometimes no cover-all answer, or we just don't want it, while a default behaviour makes sense.
+            This method should return the answer that is the most logical, in our case the two least further apart numbers that when
+            multiplied together give MaxVal. I might never use it, but it helped think to write it, so here it is.
+            
+            For the love of all that is holy, prime check the input.
             </remarks>
-        </member>
-        <member name="M:Sudoku.Util.StaticHelpers.Q_PopCnt(System.Int64)">
-            <summary>
-            Returns the Hamming Weight of the given <see cref="T:System.Int64"/>.
-            Uses the fastest possible implementation that's not vectorized or a built in CPU instruction,
-            should be used if the value is expected to be high.
-            </summary>
-            <param name="N">The value to count the bits from.</param>
-            <returns>The population count.</returns>
-        </member>
-        <member name="M:Sudoku.Util.StaticHelpers.Q_PopCnt(System.UInt32)">
-            <summary>
-            Returns the Hamming Weight of the given <see cref="T:System.UInt32"/>.
-            Uses the fastest possible implementation that's not vectorized or a built in CPU instruction,
-            should be used if the value is expected to be high.
-            </summary>
-            <param name="N">The value to count the bits from.</param>
-            <returns>The population count.</returns>
-        </member>
-        <member name="M:Sudoku.Util.StaticHelpers.Q_PopCnt(System.Int32)">
-            <summary>
-            Returns the Hamming Weight of the given <see cref="T:System.Int32"/>.
-            Uses the fastest possible implementation that's not vectorized or a built in CPU instruction,
-            should be used if the value is expected to be high.
-            </summary>
-            <param name="N">The value to count the bits from.</param>
-            <returns>The population count.</returns>
         </member>
         <member name="T:Sudoku.App">
             <summary>
@@ -290,11 +539,6 @@
             that are faster to do as bit operations.
             </summary>
         </member>
-        <member name="F:Sudoku.Matrices.Bit32Matrix.ConversionMap">
-            <summary>
-            Used by the <see cref="M:Sudoku.Matrices.Bit32Matrix.ToMatrix"/> method. Lazy initialized and uses bytes for less memory overhead.
-            </summary>
-        </member>
         <member name="M:Sudoku.Matrices.Bit32Matrix.#ctor(System.Int32,System.Int32)">
             <summary>
             Create a new <see cref="T:Sudoku.Matrices.Bit32Matrix"/> with the specified size.
@@ -313,39 +557,11 @@
             Converts the current <see cref="T:Sudoku.Matrices.Bit32Matrix"/> to a standard <see cref="T:Sudoku.Matrices.Matrix"/>.
             </summary>
             <returns>A <see cref="T:Sudoku.Matrices.Matrix"/> with the values of the current instance.</returns>
-            <remarks>
-            The obvious solution here would be logarithm, since mathematically,
-            we would like to know the current power of 2 a value represents.
-            
-            That's dog slow.
-            
-            We're making the kassumption that all values have a Hamming weight of 1 or 0, since only then is it possible to
-            do the conversion backwards. In that case, a binary search algorithm on the bits would be ideal, but let's assume
-            we have the memory space for mapping instead. If we do have the cache space that'll be a lot faster, since we might have
-            matrices with hundreds of fields.
-            
-            Of course, we can't just make a map with 32 bit integers, that would be huge. So we need a way to get a small and unique
-            value for all the 33 possible cases.
-            
-            Basically, a pseudo-hashmap.
-            Doing modulo with a prime that's larger than 33 will give small and unique values for each case. 37 will do.
-            
-            We are not using a conventional Dictionary to avoid overhead, since that's a lot more complex 
-            and the function calls and memory space for "buckets" together would make the binary search preferable.
-            
-            Yes, it would be easier. Yes, I could've typed out a switch with 33 cases by the time I figured and typed this out.
-            But where's the fun in that?
-            </remarks>
         </member>
         <member name="T:Sudoku.Matrices.Bit64Matrix">
             <summary>
             A matrix that stores it's values as powers of 2, with a singe offset. The backbone of most Sudoku logic
             that are faster to do as bit operations. Used for larger Sudokus.
-            </summary>
-        </member>
-        <member name="F:Sudoku.Matrices.Bit64Matrix.ConversionMap">
-            <summary>
-            Used by the <see cref="M:Sudoku.Matrices.Bit64Matrix.ToMatrix"/> method. Lazy initialized and uses bytes for less memory overhead.
             </summary>
         </member>
         <member name="M:Sudoku.Matrices.Bit64Matrix.#ctor(System.Int32,System.Int32)">
@@ -366,7 +582,6 @@
             Converts the current <see cref="T:Sudoku.Matrices.Bit64Matrix"/> to a standard <see cref="T:Sudoku.Matrices.Matrix"/>.
             </summary>
             <returns>A <see cref="T:Sudoku.Matrices.Matrix"/> with the values of the current instance.</returns>
-            <remarks>See <see cref="M:Sudoku.Matrices.Bit32Matrix.ToMatrix"/> for implementation details.</remarks>
         </member>
         <member name="T:Sudoku.Matrices.ByteMatrix">
             <summary>
@@ -535,91 +750,6 @@
             <summary>
             [Debug] Prints the stored values to the output stream
             </summary>
-        </member>
-        <member name="T:Sudoku.ISudoku">
-            <summary>
-            Represents a game of Sudoku.
-            </summary>
-        </member>
-        <member name="P:Sudoku.ISudoku.FieldCount">
-            <summary>
-            The total number of Fields or "tiles" this Sudoku contains. The size of the puzzle.
-            </summary>
-        </member>
-        <member name="P:Sudoku.ISudoku.RowCount">
-            <summary>
-            The total number of Rows this Sudoku contains. The height of the puzzle.
-            </summary>
-        </member>
-        <member name="P:Sudoku.ISudoku.ColumnCount">
-            <summary>
-            The total number of Columns this Sudoku contains. The width of the the puzzle.
-            </summary>
-        </member>
-        <member name="P:Sudoku.ISudoku.MaxValue">
-            <summary>
-            The highest value a single field may contain. For a classic Sudoku, this would be 9.
-            </summary>
-        </member>
-        <member name="P:Sudoku.ISudoku.IsGenerated">
-            <summary>
-            Whether this Sudoku has been properly filled to completion by an algorithm
-            </summary>
-        </member>
-        <member name="P:Sudoku.ISudoku.IsReduced">
-            <summary>
-            Whether this Sudoku has been reduced, so that it is ready to be solved by a user
-            </summary>
-        </member>
-        <member name="P:Sudoku.ISudoku.IsUnique">
-            <summary>
-            Whether this Sudoku is guaranteed to be unique, meaning it has only one solution after reduction.
-            Ideally, this is always true.
-            </summary>
-        </member>
-        <member name="P:Sudoku.ISudoku.Seed">
-            <summary>
-            The seed this Sudoku was created with.
-            </summary>
-        </member>
-        <member name="P:Sudoku.ISudoku.MinFieldConstraints">
-            <summary>
-            Returns the minimum count of field constraints a given tile has (Region, row, column, diagonal, etc). 
-            </summary>
-        </member>
-        <member name="P:Sudoku.ISudoku.MaxFieldConstraints">
-            <summary>
-            Returns the maximum count of field constraints a given tile can have (Region, row, column, diagonal, etc). 
-            </summary>
-        </member>
-        <member name="M:Sudoku.ISudoku.GetConstraintCountForField(System.Int32,System.Int32)">
-            <summary>
-            Returns how many constraints (limiting areas such as rows, columns, regions...) a given field coordinate has.
-            </summary>
-            <param name="x">The x component of the coordinate.</param>
-            <param name="y">The Y component of the coordinate.</param>
-            <returns>An <see cref="T:System.Int32"/> count of all the constraints.</returns>
-        </member>
-        <member name="M:Sudoku.ISudoku.IsValidTile(System.Int32,System.Int32)">
-            <summary>
-            Determines whether the provided tile coordinate is a valid one for this Sudoku.
-            </summary>
-            <param name="x">The x component of the coordinate.</param>
-            <param name="y">The Y component of the coordinate.</param>
-            <returns>A <see cref="T:System.Boolean"/> that is true if the coordinate is valid.</returns>
-        </member>
-        <member name="M:Sudoku.ISudoku.GetMatrix">
-            <summary>
-            Returns a complete matrix filled with the current state of the Sudoku. 0 is empty field, -1 is invalid tile.
-            Changes to the returned <see cref="T:Sudoku.Matrices.Matrix"/> should be avoided, since it may be the actual backing matrix.
-            </summary>
-            <returns>A standard <see cref="T:Sudoku.Matrices.Matrix"/>.</returns>
-        </member>
-        <member name="M:Sudoku.ISudoku.CreateVisual">
-            <summary>
-            Creates a visual component tree that is capable of displaying the complete Sudoku for interaction with the User.
-            </summary>
-            <returns>A <see cref="T:System.Windows.Controls.Grid"/> object that is the root of the visual component tree.</returns>
         </member>
         <member name="T:Sudoku.UI.MainWindow">
             <summary>

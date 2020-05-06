@@ -24,7 +24,7 @@ namespace Sudoku.Util
     /// 
     /// Pretty much like everything in the project, it's not stupid proofed, use your head.
     /// </remarks>
-    class QuickRand
+    public sealed class QuickRand
     {
         /// <summary>
         /// Basically the only way to properly get 16 random bytes that doesn't run into pigeon hole.

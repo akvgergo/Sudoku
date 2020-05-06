@@ -25,8 +25,12 @@ namespace Sudoku.UI
         public MainWindow()
         {
             InitializeComponent();
-            
-            ClassicSudoku s = new ClassicSudoku("tjULAm7+9Zk4hs29GJ8o/Q==", regionWidth:3, regionHeight:2);
+
+            Console.WriteLine(Convert.ToString(-1, 2));
+
+            ClassicSudoku classicSudoku = new ClassicSudoku();
+
+            //ClassicSudoku s = new ClassicSudoku("tjULAm7+9Zk4hs29GJ8o/Q==", regionWidth:3, regionHeight:2);
 
         }
     }

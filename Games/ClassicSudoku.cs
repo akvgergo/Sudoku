@@ -12,21 +12,9 @@ namespace Sudoku.Games
     /// <summary>
     /// A sudoku puzzle with the classic row, column, and square region constraints. Can be a custom unconventional size.
     /// </summary>
-    class ClassicSudoku : ISudoku
+    class ClassicSudoku : SudokuBase32
     {
         Matrix innerMatrix;
-
-        public int FieldCount { get; protected set; }
-
-        public int RowCount { get; protected set; }
-
-        public int ColumnCount { get; protected set; }
-
-        public int MaxValue { get; protected set; }
-
-        public bool IsGenerated { get; protected set; }
-
-        public bool IsReduced { get; protected set; }
 
         public bool IsUnique {
             get { return true; }
@@ -50,56 +38,58 @@ namespace Sudoku.Games
         /// <param name="regionHeight">The height of a single region. The final size will be Width * Height.</param>
         public ClassicSudoku(string seed = null, int regionWidth = 3, int regionHeight = 3)
         {
-            QuickRand rnd = seed == null ? QuickRand.CreateSecure() : new QuickRand(seed);
-            Seed = rnd.GetStateString();
+            RNG = seed == null ? QuickRand.CreateSecure() : new QuickRand(seed);
+
+            Seed = RNG.GetStateString();
 
             Console.WriteLine(Seed);
 
+            RegionWidth = regionWidth;
+            RegionHeight = regionHeight;
             ColumnCount = RowCount = MaxValue = regionWidth * regionHeight;
             FieldCount = ColumnCount * RowCount;
 
             if (MaxValue > 32) throw new ArgumentException("The provided values are too large.");
 
-            Bit32Matrix matrix = new Bit32Matrix(MaxValue, MaxValue);
+            Matrix = new Bit32Matrix(MaxValue, MaxValue);
 
             List<int> values = Enumerable.Range(0, MaxValue).ToList();
-            values.Shuffle(rnd);
 
-            for (int x = 0; x < regionWidth; x++)
-            {
-                for (int y = 0; y < regionHeight; y++)
-                {
-                    matrix[x, y] = 1 << values[x * regionHeight + y];
-                }
-            }
-
-            //values.Shuffle(rnd);
-
-            //for (int x = 0; x < regionWidth; x++)
+            //for (int regionOffset = 0; regionOffset < Math.Min(regionWidth, regionHeight); regionOffset++)
             //{
-            //    for (int y = 0; y < regionHeight; y++)
+            //    values.Shuffle(RNG);
+            //    for (int x = 0; x < regionWidth; x++)
             //    {
-            //        matrix[ColumnCount - x - 1, RowCount - y - 1] = 1 << values[x * regionHeight + y];
+            //        for (int y = 0; y < regionHeight; y++)
+            //        {
+            //            Matrix[x + regionWidth * regionOffset, y + regionHeight * regionOffset] = 1 << values[x * regionHeight + y];
+            //        }
             //    }
             //}
 
+            Matrix.ToMatrix().Print();
 
+            Console.WriteLine(BruteFill());
 
-            matrix.ToMatrix().Print();
-            if (!GenerateFromPartial(matrix, regionWidth, regionHeight, rnd)) throw new Exception("Logic error, we screwed.");
+            Matrix.ToMatrix().Print();
 
-            innerMatrix = matrix.ToMatrix();
+            innerMatrix = Matrix.ToMatrix();
         }
         
         /// <summary>
         /// Generates a complete puzzle from the provided partially filled matrix.
+        /// 
+        /// This is baiscally a deterministic solver.
         /// </summary>
-        /// <param name="m">The partially filled matrix to create a proper puzzle from.</param>
+        /// <param name="m">
+        /// The partially filled matrix to create a proper puzzle from. The most ideal is to have a
+        /// certain number of regions completely filled.
+        /// </param>
         /// <returns>
         /// A <see cref="bool"/> indicating whether the algorithm was successful. The operation may fail if the matrix is overfilled
         /// or isn't valid as a puzzle with the already filled values.
         /// </returns>
-        public static bool GenerateFromPartial(Bit32Matrix m, int regionWidth, int regionHeight, QuickRand rnd)
+        public static bool GenerateFromPartial(Bit32Matrix m, int regionWidth, int regionHeight)
         {
             //all caches should be the same size, the only way this isn't generateable from say, an empty matrix
             //is if we get an exceptionally stupid size argument or a prime MaxVal.
@@ -130,8 +120,10 @@ namespace Sudoku.Games
                         for (int y = region / regionHeight * regionHeight; y < region / regionHeight * regionHeight + regionHeight; y++)
                         {
                             if (((caches[cCOffset + y] & (1 << digit)) != 0) || (m[x, y] != 0)) continue;
+                            int fieldCache = (~(caches[x] | caches[cCOffset + y] | caches[cROffset + x / regionWidth + y / regionHeight * regionHeight]));
+                            if (BinaryMath.Q_PopCnt(fieldCache >> (32 >> (regionWidth * regionHeight))) == 0) continue; //TODO: was here, not working
                             m[x, y] = 1 << digit;
-                            m.ToMatrix().Print();
+                            //m.ToMatrix().Print();
                             caches[x] |= m[x, y];
                             caches[cCOffset + y] |= m[x, y];
                             caches[cROffset + x / regionWidth + y / regionHeight * regionHeight] |= m[x, y];
@@ -139,8 +131,7 @@ namespace Sudoku.Games
                         }
                     }
 
-
-                    regionfilled:;
+                regionfilled:;
                 }
             }
 
@@ -149,72 +140,54 @@ namespace Sudoku.Games
             return true;
         }
 
-        public Grid CreateVisual()
-        {
-            throw new NotImplementedException();
-        }
-
-        public int GetConstraintCountForField(int x, int y)
+        public override int GetConstraintCountForField(int x, int y)
         {
             return 3;
         }
 
-        public Matrix GetMatrix()
+        protected sealed override int GetTileCache(int x, int y)
         {
-            return innerMatrix;
+            return (~(Caches[0][x] | Caches[1][y] | Caches[2][x / RegionWidth + y / RegionHeight * RegionHeight])) & (int)(uint.MaxValue >> (32 - MaxValue));
         }
 
-        public bool IsValidTile(int x, int y)
+        protected sealed override void AddTileCache(int x, int y, int value)
         {
-            return x >= 0 && x < ColumnCount && y >= 0 && y < RowCount;
+            Caches[0][x] |= value;
+            Caches[1][y] |= value;
+            Caches[2][x / RegionWidth + y / RegionHeight * RegionHeight] |= value;
         }
 
-        /// <summary>
-        /// Returns the width and height of a Sudoku, calculated from the maximum field values.
-        /// </summary>
-        /// <param name="MaxValue">The highest value a field can have.</param>
-        /// <returns>A tuple containing the width and height of a single region.</returns>
-        /// <remarks>
-        /// Side effect of making the generator self-contained. Note that this returns the value that
-        /// "makes the most sense". The method asks for a Maxval, but it could also ask for width and height, or
-        /// a single dimension if we always assume a perfect square, but with more flexibility comes
-        /// a few logic issues, and some decisions to make.
-        /// 
-        /// If we asked for dimensions instead, we could make the argument that an 8x8 Sudoku with 4 4x4 regions is perfectly
-        /// legal, since of course we could choose from 16 values to fit into that 8 for rows and columns, and there would be no
-        /// need to use the same value twice. There are a few configurations where this issue could arise and not just with squares,
-        /// so better to lay down the rule that we *need* to use all numbers.
-        /// 
-        /// So MaxVal is better in that regard. But is it better to make a say 12x12 grid into 12 3x4, or 12 2x6.
-        /// The former of course makes more sense, but the better question is, what if we *want* a 2x6 RegionSize?
-        /// It could be perfect for a multi-Sudoku later, or some other interesting game variant.
-        /// 
-        /// When we make things more abstract, easier to use, and above all flexible, we may run into similar issues.
-        /// Multiple solutions that are better for some cases than others. The idea of making GeneratorArgs a thing was born
-        /// while writing this method.
-        /// 
-        /// So yes, there is sometimes no cover-all answer, or we just don't want it, while a default behaviour makes sense.
-        /// This method should return the answer that is the most logical, in our case the two least further apart numbers that when
-        /// multiplied together give MaxVal. I might never use it, but it helped think to write it, so here it is.
-        /// 
-        /// For the love of all that is holy, prime check the input.
-        /// </remarks>
-        public static (int width, int height) GetRegionSize(int MaxValue)
+        protected sealed override void RemoveTileCache(int x, int y, int value)
         {
-            int sqrt = (int)Math.Floor(Math.Sqrt(MaxValue));
-            //a whole sqrt means we can abide traditional rules, best case
-            if (sqrt * sqrt == MaxValue) return (sqrt, sqrt);
+            Caches[0][x] -= value;
+            Caches[1][y] -= value;
+            Caches[2][x / RegionWidth + y / RegionHeight * RegionHeight] -= value;
+        }
 
-            //the least deviation from the sqrt will return the least further apart values.
-            int width = sqrt + 1;
-            while (width * sqrt != MaxValue)
+        protected sealed override void CreateCaches()
+        {
+            Caches = new int[3][];
+            for (int i = 0; i < 3; i++) Caches[i] = new int[Matrix.Width];
+
+            for (int x = 0; x < Matrix.Width; x++)
             {
-                if (width * sqrt > MaxValue)
-                    sqrt--;
-                else
-                    width++;
+                for (int y = 0; y < Matrix.Height; y++)
+                {
+                    Caches[0][x] |= Matrix[x, y];
+                    Caches[1][y] |= Matrix[x, y];
+                    Caches[2][x / RegionWidth + y / RegionHeight * RegionHeight] |= Matrix[x, y];
+                }
             }
-            return (width, sqrt);
+        }
+
+        public override Matrix GetMatrix()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Grid CreateVisual()
+        {
+            throw new NotImplementedException();
         }
     }
 }
