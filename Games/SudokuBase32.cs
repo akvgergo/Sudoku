@@ -208,28 +208,20 @@ namespace Sudoku.Games
                 emptyFields.Shuffle(RNG);
             }
 
-            int maxpointer = pointer;
-            while (pointer > -1 && pointer < emptyFields.Count)
+            SolverTile field = emptyFields[pointer];
+            field.Value = GetTileCache(field.Location.X, field.Location.Y);
+            while (true)
             {
-                if (pointer > maxpointer)
-                {
-                    maxpointer = pointer;
-                    Matrix.ToMatrix().Print();
-                }
-                SolverTile field = emptyFields[pointer];
-
                 if (field.Value == 0)
                 {
-                    field.Value = GetTileCache(field.Location.X, field.Location.Y);
-                    if (field.Value == 0) {
-                        if (Matrix[field.Location] != 0)
-                        {
-                            RemoveTileCache(field.Location.X, field.Location.Y, Matrix[field.Location]);
-                            Matrix[field.Location] = 0;
-                        }
-                        pointer--;
-                        continue;
+                    if (Matrix[field.Location] != 0)
+                    {
+                        RemoveTileCache(field.Location.X, field.Location.Y, Matrix[field.Location]);
+                        Matrix[field.Location] = 0;
                     }
+                    if (--pointer == -1) return false;
+                    field = emptyFields[pointer];
+                    continue;
                 }
 
                 RemoveTileCache(field.Location.X, field.Location.Y, Matrix[field.Location]);
@@ -238,11 +230,11 @@ namespace Sudoku.Games
                 Matrix[field.Location] = field.Value ^ newVal;
                 field.Value = newVal;
                 AddTileCache(field.Location.X, field.Location.Y, Matrix[field.Location]);
-                pointer++;
+                emptyFields[pointer] = field;
+                if (++pointer == emptyFields.Count) return true;
+                field = emptyFields[pointer];
+                field.Value = GetTileCache(field.Location.X, field.Location.Y);
             }
-
-            if (pointer < 0) return false;
-            return true;
         }
 
         /// <summary>

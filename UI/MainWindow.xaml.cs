@@ -14,6 +14,7 @@ using System.Windows.Shapes;
 using Sudoku.Games;
 using Sudoku.Matrices;
 using Sudoku.Util;
+using System.Diagnostics;
 
 namespace Sudoku.UI
 {
@@ -26,9 +27,15 @@ namespace Sudoku.UI
         {
             InitializeComponent();
 
-            Console.WriteLine(Convert.ToString(-1, 2));
+            Stopwatch sw = Stopwatch.StartNew();
+            var count = 0;
+            while (sw.ElapsedMilliseconds < 10000)
+            {
+                ClassicSudoku classicSudoku = new ClassicSudoku(regionHeight:3, regionWidth:3);
+                count++;
+            }
 
-            ClassicSudoku classicSudoku = new ClassicSudoku();
+            Console.WriteLine("generated {0} classic puzzles in 10 seconds", count);
 
             //ClassicSudoku s = new ClassicSudoku("tjULAm7+9Zk4hs29GJ8o/Q==", regionWidth:3, regionHeight:2);
 
