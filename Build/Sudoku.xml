@@ -16,21 +16,18 @@
             <param name="seed">The seed to generate the puzzle with.</param>
             <param name="regionWidth">The width of a single region. The final size will be Width * Height.</param>
             <param name="regionHeight">The height of a single region. The final size will be Width * Height.</param>
-        </member>
-        <member name="M:Sudoku.Games.ClassicSudoku.GenerateFromPartial(Sudoku.Matrices.Bit32Matrix,System.Int32,System.Int32)">
-            <summary>
-            Generates a complete puzzle from the provided partially filled matrix.
+            <remarks>
+            The strategy is that it fills up the center first and then goes outwards to fill everything else,
+            with random steps added in-between. The exact way differs if:
+            -the center of the Sudoku is the center of a region
+            -the center of the Sudoku is the wall between two regions
+            -the center of the Sudoku is the corner between 4 regions
             
-            This is baiscally a deterministic solver.
-            </summary>
-            <param name="m">
-            The partially filled matrix to create a proper puzzle from. The most ideal is to have a
-            certain number of regions completely filled.
-            </param>
-            <returns>
-            A <see cref="T:System.Boolean"/> indicating whether the algorithm was successful. The operation may fail if the matrix is overfilled
-            or isn't valid as a puzzle with the already filled values.
-            </returns>
+            The logic behind this is that in order to avoid overfilling (randomly filling to a point
+            where bruteforce would fail) we cannot fill more than half the regions that are affecting
+            (in the same row of regions or column of regions) a given region. Filling outwards should never
+            pose such a situation, and should give the most performance for rather large grids.
+            </remarks>
         </member>
         <member name="T:Sudoku.Games.SudokuBase32">
             <summary>
@@ -44,7 +41,7 @@
         </member>
         <member name="P:Sudoku.Games.SudokuBase32.RNG">
             <summary>
-            The internal RNG to use for all randomized operations.
+            The internal RNG to use for all randomized operations. Inheritors should always set this.
             </summary>
         </member>
         <member name="P:Sudoku.Games.SudokuBase32.Caches">
@@ -195,11 +192,21 @@
             </summary>
             <returns>A <see cref="T:System.Windows.Controls.Grid"/> object that is the root of the visual component tree.</returns>
         </member>
-        <member name="M:Sudoku.Games.SudokuBase32.BruteFill(System.Boolean)">
+        <member name="M:Sudoku.Games.SudokuBase32.BruteFill(System.Boolean,System.Int32,System.Int32,System.Int32,System.Int32)">
             <summary>
             Fills the entire matrix with values.
             </summary>
             <returns>Returns true if the algorithm succeeded, false if it failed.</returns>
+            <remarks>
+            Backtracking algorithm, the more filled fields, the faster it gets. May choke randomly because of RNG.
+            Non-deterministic may be dog slow. Avoid that if you actually want to fill.
+            </remarks>
+        </member>
+        <member name="M:Sudoku.Games.SudokuBase32.Reduce(System.Boolean)">
+            <summary>
+            Reduces the completed matrix in a way tht it stays unique (only one possible solution). Last step before completion.
+            </summary>
+            <param name="complete">Whether we should reduce until we can't reduce it further without losing uniquity.</param>
         </member>
         <member name="T:Sudoku.Games.SudokuBase32.SolverTile">
             <summary>

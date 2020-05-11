@@ -22,7 +22,7 @@ namespace Sudoku.Games
         protected Bit32Matrix Matrix { get; set; }
 
         /// <summary>
-        /// The internal RNG to use for all randomized operations.
+        /// The internal RNG to use for all randomized operations. Inheritors should always set this.
         /// </summary>
         protected QuickRand RNG { get; set; }
 
@@ -184,29 +184,45 @@ namespace Sudoku.Games
         /// Fills the entire matrix with values.
         /// </summary>
         /// <returns>Returns true if the algorithm succeeded, false if it failed.</returns>
-        protected bool BruteFill(bool deterministic = true)
+        /// <remarks>
+        /// Backtracking algorithm, the more filled fields, the faster it gets. May choke randomly because of RNG.
+        /// Non-deterministic may be dog slow. Avoid that if you actually want to fill.
+        /// </remarks>
+        protected bool BruteFill(bool deterministic = true, int startX = -1, int startY = -1, int finishX = -1, int finishY = -1)
         {
             CreateCaches();
             List<SolverTile> emptyFields = new List<SolverTile>(Matrix.FieldCount);
             int pointer = 0;
 
-            for (int y = 0; y < Matrix.Height; y++)
+            if (startX < 0)
             {
-                for (int x = 0; x < Matrix.Width; x++)
+                for (int x = 0; x < Matrix.Height; x++)
                 {
-                    if (Matrix[x, y] == 0)
+                    for (int y = 0; y < Matrix.Width; y++)
                     {
-                        emptyFields.Add(new SolverTile(x, y, 0));
+                        if (Matrix[x, y] == 0)
+                        {
+                            emptyFields.Add(new SolverTile(x, y, 0));
+                        }
+                    }
+                }
+            } else
+            {
+                for (int x = startX; x < finishX; x++)
+                {
+                    for (int y = startY; y < finishY; y++)
+                    {
+                        if (Matrix[x, y] == 0)
+                        {
+                            emptyFields.Add(new SolverTile(x, y, 0));
+                        }
                     }
                 }
             }
 
             if (emptyFields.Count == 0) return true;
 
-            if (!deterministic)
-            {
-                emptyFields.Shuffle(RNG);
-            }
+            if (!deterministic) emptyFields.Shuffle(RNG);
 
             SolverTile field = emptyFields[pointer];
             field.Value = GetTileCache(field.Location.X, field.Location.Y);
@@ -235,6 +251,46 @@ namespace Sudoku.Games
                 field = emptyFields[pointer];
                 field.Value = GetTileCache(field.Location.X, field.Location.Y);
             }
+        }
+
+        /// <summary>
+        /// Reduces the completed matrix in a way tht it stays unique (only one possible solution). Last step before completion.
+        /// </summary>
+        /// <param name="complete">Whether we should reduce until we can't reduce it further without losing uniquity.</param>
+        protected void Reduce(bool complete = false)
+        {
+            //remove in completely random order whereever possible
+            for (int i = 0; i < FieldCount; i++)
+            {
+                int x = RNG.GetRange(0, Matrix.Width), y = RNG.GetRange(0, Matrix.Height);
+                if (Matrix[x, y] == 0) continue; //been here before
+                //if there is only one possible solution for a field, we can safely remove it's value.
+                int deduction = GetTileCache(x, y);
+                if ((deduction - 1 & deduction) == 0)
+                {
+                    RemoveTileCache(x, y, Matrix[x, y]);
+                    Matrix[x, y] = 0;
+                }
+            }
+
+            if (!complete) return;
+
+            //go through everything and remove the rest
+            for (int x = 0; x < Matrix.Width; x++)
+            {
+                for (int y = 0; y < Matrix.Height; y++)
+                {
+                    if (Matrix[x, y] == 0) continue;
+
+                    int deduction = GetTileCache(x, y);
+                    if ((deduction - 1 & deduction) == 0)
+                    {
+                        RemoveTileCache(x, y, Matrix[x, y]);
+                        Matrix[x, y] = 0;
+                    }
+                }
+            }
+
         }
 
         /// <summary>
