@@ -186,7 +186,7 @@ namespace Sudoku.Games
 
         public override Grid CreateVisual()
         {
-            throw new NotImplementedException();
+            return StaticHelpers.CreateGrid(RegionWidth, RegionHeight).grid;
         }
     }
 }

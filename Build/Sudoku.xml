@@ -213,6 +213,29 @@
             Used by the brutefill algorithm to keep track of field values.
             </summary>
         </member>
+        <member name="T:Sudoku.UI.DecoSudoku">
+            <summary>
+            Purely for UI decoration. Logic stolen from other stuff.
+            </summary>
+        </member>
+        <member name="M:Sudoku.UI.DecoSudoku.RunAnimationLoop">
+            <summary>
+            Animates the generation and reduction of a 9x9 grid. Once done, it will randomly clear and refill tiles.
+            </summary>
+        </member>
+        <member name="T:Sudoku.UI.MainWindow">
+            <summary>
+            Interaction logic for MainWindow.xaml
+            </summary>
+            <summary>
+            MainWindow
+            </summary>
+        </member>
+        <member name="M:Sudoku.UI.MainWindow.InitializeComponent">
+            <summary>
+            InitializeComponent
+            </summary>
+        </member>
         <member name="T:Sudoku.Util.BinaryMath">
             <summary>
             Contains static helper methods to manipulate bit data on atomic types.
@@ -474,6 +497,16 @@
             Returns a base64 encoded string that stores the seeds of the current instance
             </summary>
         </member>
+        <member name="T:Sudoku.Util.StaticHelpers">
+            <summary>
+            Static methods that can't be put elsewhere. This is a nice way of saying a trash heap.
+            </summary>
+        </member>
+        <member name="F:Sudoku.Util.StaticHelpers.CoordProperty">
+            <summary>
+            DP to use for coordinate binding.
+            </summary>
+        </member>
         <member name="M:Sudoku.Util.StaticHelpers.PopRandom``1(System.Collections.Generic.ICollection{``0},Sudoku.Util.QuickRand)">
             <summary>
             Removes a random member of a collection and returns the removed element. The elements should ideally be unique.
@@ -521,6 +554,12 @@
             
             For the love of all that is holy, prime check the input.
             </remarks>
+        </member>
+        <member name="M:Sudoku.Util.StaticHelpers.CreateGrid(System.Int32,System.Int32)">
+            <summary>
+            Creates a standard grid that should be used for games that need a classic style one.
+            </summary>
+            <returns>A <see cref="T:System.Windows.Controls.Grid"/> object that is the root of the visual tree</returns>
         </member>
         <member name="T:Sudoku.App">
             <summary>
@@ -756,19 +795,6 @@
         <member name="M:Sudoku.Matrices.MatrixBase`1.Print">
             <summary>
             [Debug] Prints the stored values to the output stream
-            </summary>
-        </member>
-        <member name="T:Sudoku.UI.MainWindow">
-            <summary>
-            Interaction logic for MainWindow.xaml
-            </summary>
-            <summary>
-            MainWindow
-            </summary>
-        </member>
-        <member name="M:Sudoku.UI.MainWindow.InitializeComponent">
-            <summary>
-            InitializeComponent
             </summary>
         </member>
         <member name="T:Sudoku.Point64">

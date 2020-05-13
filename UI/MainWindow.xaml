@@ -5,14 +5,42 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Sudoku"
         mc:Ignorable="d"
-        Title="MainWindow" Height="800" Width="1200" Background="#FF6EDDFF">
-    <Grid x:Name="TitleScreenGrid" Background="#FF00CDFF">
-        <Label x:Name="TitleLabel" Content="SUDOKU" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" FontSize="72" FontWeight="Bold" FontFamily="Arial Black"/>
-        <StackPanel HorizontalAlignment="Left" Height="289" Margin="10,121,0,0" VerticalAlignment="Top" Width="200">
-            <Button x:Name="PlayButton" Content="Play" Height="40"/>
-            <Button x:Name="ContinueButton" Content="Continue" HorizontalAlignment="Left" VerticalAlignment="Top" Width="200" Height="40"/>
-            <Button x:Name="TriviaButton" Content="What is this?" HorizontalAlignment="Left" VerticalAlignment="Top" Width="200" Height="40"/>
+        Title="MainWindow" Height="600" Width="600" Background="White" MinWidth="500" MinHeight="500">
+    <Window.Resources>
+        <Style TargetType="{x:Type Button}">
+            <Style.Resources>
+                <Style TargetType="{x:Type Border}">
+                    <Setter Property="CornerRadius" Value="10" />
+                </Style>
+            </Style.Resources>
+        </Style>
+    </Window.Resources>
+    <Grid x:Name="TitleScreenGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition Height="2*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Viewbox x:Name="BackgroudView" Stretch="UniformToFill" Grid.ColumnSpan="3" Grid.RowSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Viewbox.Effect>
+                <BlurEffect Radius="15"/>
+            </Viewbox.Effect>
+        </Viewbox>
+        <TextBox x:Name="TitleText" Text="SUDOKU" Margin="0" FontSize="72" FontWeight="Bold" FontFamily="Arial Black" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="#99FFFFFF">
+            <TextBox.Resources>
+                <Style TargetType="{x:Type Border}">
+                    <Setter Property="CornerRadius" Value="15"/>
+                </Style>
+            </TextBox.Resources>
+        </TextBox>
+        <StackPanel Height="289" Margin="0" VerticalAlignment="Center" Width="200" Grid.Column="1" Grid.Row="1" HorizontalAlignment="Center">
+            <Button x:Name="PlayButton" Content="Play" Height="40" Background="White" BorderBrush="#FFC3C3C3" BorderThickness="6" Margin="0,0,0,20"/>
+            <Button x:Name="ContinueButton" Content="Continue" Height="40" Background="White" BorderBrush="#FFC3C3C3" BorderThickness="6" Margin="0,0,0,20"/>
+            <Button x:Name="TriviaButton" Content="What is this?" Height="40" Background="White" BorderBrush="#FFC3C3C3" BorderThickness="6" Margin="0,0,0,20" Click="TriviaButton_Click"/>
         </StackPanel>
-        <Border x:Name="TestRectangle" BorderBrush="Black" BorderThickness="1" HorizontalAlignment="Left" Height="407" Margin="751,353,0,0" VerticalAlignment="Top" Width="433"/>
     </Grid>
 </Window>
