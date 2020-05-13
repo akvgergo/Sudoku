@@ -42,6 +42,5 @@
             <Button x:Name="ContinueButton" Content="Continue" Height="40" Background="White" BorderBrush="#FFC3C3C3" BorderThickness="6" Margin="0,0,0,20"/>
             <Button x:Name="TriviaButton" Content="What is this?" Height="40" Background="White" BorderBrush="#FFC3C3C3" BorderThickness="6" Margin="0,0,0,20" Click="TriviaButton_Click"/>
         </StackPanel>
-
     </Grid>
 </Window>
