@@ -98,7 +98,6 @@ namespace Sudoku.Games
 
             //Matrix.ToMatrix().Print();
 
-            int centerX = Matrix.Width / 2, centerY = Matrix.Height / 2;
             if (Matrix.Width == Matrix.Height) //if we have a regular Sudoku shape, we can start filling from the center
             {
                 int start, finish;

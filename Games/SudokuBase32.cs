@@ -276,6 +276,7 @@ namespace Sudoku.Games
             if (!complete) return;
 
             //go through everything and remove the rest
+            //this may cause some bias since we start from the top. Needs testing.
             for (int x = 0; x < Matrix.Width; x++)
             {
                 for (int y = 0; y < Matrix.Height; y++)

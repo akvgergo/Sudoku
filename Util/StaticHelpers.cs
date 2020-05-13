@@ -3,11 +3,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace Sudoku.Util
 {
+
+    /// <summary>
+    /// Static methods that can't be put elsewhere. This is a nice way of saying a trash heap.
+    /// </summary>
     static class StaticHelpers
     {
+
+        /// <summary>
+        /// DP to use for coordinate binding.
+        /// </summary>
+        public static DependencyProperty CoordProperty = DependencyProperty.RegisterAttached("Coord", typeof(Point32), typeof(UIElement));
+
         /// <summary>
         /// Removes a random member of a collection and returns the removed element. The elements should ideally be unique.
         /// </summary>
@@ -88,6 +101,75 @@ namespace Sudoku.Util
                     width++;
             }
             return (width, sqrt);
+        }
+
+        /// <summary>
+        /// Creates a standard grid that should be used for games that need a classic style one.
+        /// </summary>
+        /// <returns>A <see cref="Grid"/> object that is the root of the visual tree</returns>
+        public static Grid CreateGrid(int regionWidth, int regionHeight)
+        {
+            Grid retGrid = new Grid();
+
+            for (int i = 0; i < regionWidth; i++)
+            {
+                retGrid.ColumnDefinitions.Add(new ColumnDefinition());
+            }
+
+            for (int i = 0; i < regionHeight; i++)
+            {
+                retGrid.RowDefinitions.Add(new RowDefinition() { });
+            }
+
+
+            for (int x = 0; x < regionWidth; x++)
+            {
+                for (int y = 0; y < regionHeight; y++)
+                {
+                    Border b = new Border()
+                    {
+                        BorderThickness = new Thickness(2),
+                        BorderBrush = Brushes.Black
+                    };
+                    retGrid.Children.Add(b);
+                    Grid.SetRow(b, y);
+                    Grid.SetColumn(b, x);
+
+                    Grid innerGrid = new Grid();
+
+                    for (int i = 0; i < regionWidth; i++)
+                    {
+                        innerGrid.ColumnDefinitions.Add(new ColumnDefinition());
+                    }
+
+                    for (int i = 0; i < regionHeight; i++)
+                    {
+                        innerGrid.RowDefinitions.Add(new RowDefinition() { });
+                    }
+
+                    b.Child = innerGrid;
+                    for (int x2 = 0; x2 < regionWidth; x2++)
+                    {
+                        for (int y2 = 0; y2 < regionHeight; y2++)
+                        {
+                            Border b2 = new Border()
+                            {
+                                BorderThickness = new Thickness(2),
+                                BorderBrush = Brushes.Black
+                            };
+
+                            b2.SetValue(CoordProperty, new Point32(x2 + regionWidth * x, y2 + regionHeight * y));
+                            innerGrid.Children.Add(b2);
+                            Grid.SetRow(b2, y2);
+                            Grid.SetColumn(b2, x2);
+                            Label ContentLbl = new Label() { Width = double.NaN, Height = double.NaN, Padding = new Thickness(0) };
+                            b2.Child = new Viewbox() { Child = ContentLbl, Stretch = Stretch.Uniform };
+                        }
+                    }
+                }
+            }
+            
+            return retGrid;
         }
 
     }

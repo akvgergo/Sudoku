@@ -5,8 +5,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Sudoku"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-        
+        Title="MainWindow" Height="800" Width="1200" Background="#FF6EDDFF">
+    <Grid x:Name="TitleScreenGrid" Background="#FF00CDFF">
+        <Label x:Name="TitleLabel" Content="SUDOKU" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" FontSize="72" FontWeight="Bold" FontFamily="Arial Black"/>
+        <StackPanel HorizontalAlignment="Left" Height="289" Margin="10,121,0,0" VerticalAlignment="Top" Width="200">
+            <Button x:Name="PlayButton" Content="Play" Height="40"/>
+            <Button x:Name="ContinueButton" Content="Continue" HorizontalAlignment="Left" VerticalAlignment="Top" Width="200" Height="40"/>
+            <Button x:Name="TriviaButton" Content="What is this?" HorizontalAlignment="Left" VerticalAlignment="Top" Width="200" Height="40"/>
+        </StackPanel>
+        <Border x:Name="TestRectangle" BorderBrush="Black" BorderThickness="1" HorizontalAlignment="Left" Height="407" Margin="751,353,0,0" VerticalAlignment="Top" Width="433"/>
     </Grid>
 </Window>

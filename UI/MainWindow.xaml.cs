@@ -15,6 +15,7 @@ using Sudoku.Games;
 using Sudoku.Matrices;
 using Sudoku.Util;
 using System.Diagnostics;
+using System.Windows.Media.Animation;
 
 namespace Sudoku.UI
 {
@@ -23,25 +24,16 @@ namespace Sudoku.UI
     /// </summary>
     public partial class MainWindow : Window
     {
+
+        DoubleAnimation fadeOut = new DoubleAnimation(0, new Duration(new TimeSpan(0, 0, 1)));
+
         public MainWindow()
         {
             InitializeComponent();
 
+            TitleScreenGrid.MouseDown += (o, e) => { TitleScreenGrid.BeginAnimation(OpacityProperty, fadeOut); };
 
-            ClassicSudoku classicSudoku = new ClassicSudoku("tY3XZU1p5SEDQv5q9Cw84A==");
-
-            //Stopwatch sw = Stopwatch.StartNew();
-            //var count = 0;
-            //while (sw.ElapsedMilliseconds < 10000)
-            //{
-            //    ClassicSudoku classicSudoku = new ClassicSudoku(regionHeight:3, regionWidth:3);
-            //    count++;
-            //}
-
-            //Console.WriteLine("generated {0} classic puzzles in 10 seconds", count);
-
-            //ClassicSudoku s = new ClassicSudoku("tjULAm7+9Zk4hs29GJ8o/Q==", regionWidth:3, regionHeight:2);
-
+            TestRectangle.Child = StaticHelpers.CreateGrid(3, 3);
         }
     }
 }
