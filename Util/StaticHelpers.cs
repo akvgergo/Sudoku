@@ -29,8 +29,8 @@ namespace Sudoku.Util
         /// <returns></returns>
         public static MemberT PopRandom<MemberT>(this ICollection<MemberT> collection, QuickRand rnd)
         {
-            var index = rnd.Getint() % collection.Count;
-            var value = collection.ElementAt(index);
+            var index = rnd.Getuint() % collection.Count;
+            var value = collection.ElementAt((int)index);
             collection.Remove(value);
             return value;
         }
@@ -107,7 +107,7 @@ namespace Sudoku.Util
         /// Creates a standard grid that should be used for games that need a classic style one.
         /// </summary>
         /// <returns>A <see cref="Grid"/> object that is the root of the visual tree</returns>
-        public static Grid CreateGrid(int regionWidth, int regionHeight)
+        public static (Grid grid, List<Label> contents) CreateGrid(int regionWidth, int regionHeight)
         {
             Grid retGrid = new Grid();
 
@@ -121,7 +121,7 @@ namespace Sudoku.Util
                 retGrid.RowDefinitions.Add(new RowDefinition() { });
             }
 
-
+            List<Label> contents = new List<Label>();
             for (int x = 0; x < regionWidth; x++)
             {
                 for (int y = 0; y < regionHeight; y++)
@@ -158,18 +158,19 @@ namespace Sudoku.Util
                                 BorderBrush = Brushes.Black
                             };
 
-                            b2.SetValue(CoordProperty, new Point32(x2 + regionWidth * x, y2 + regionHeight * y));
                             innerGrid.Children.Add(b2);
                             Grid.SetRow(b2, y2);
                             Grid.SetColumn(b2, x2);
                             Label ContentLbl = new Label() { Width = double.NaN, Height = double.NaN, Padding = new Thickness(0) };
+                            ContentLbl.SetValue(CoordProperty, new Point32(x2 + regionWidth * x, y2 + regionHeight * y));
+                            contents.Add(ContentLbl);
                             b2.Child = new Viewbox() { Child = ContentLbl, Stretch = Stretch.Uniform };
                         }
                     }
                 }
             }
             
-            return retGrid;
+            return (retGrid, contents);
         }
 
     }

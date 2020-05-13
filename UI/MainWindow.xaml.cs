@@ -26,14 +26,21 @@ namespace Sudoku.UI
     {
 
         DoubleAnimation fadeOut = new DoubleAnimation(0, new Duration(new TimeSpan(0, 0, 1)));
+        DecoSudoku deco = new DecoSudoku();
 
         public MainWindow()
         {
             InitializeComponent();
 
-            TitleScreenGrid.MouseDown += (o, e) => { TitleScreenGrid.BeginAnimation(OpacityProperty, fadeOut); };
+            BackgroudView.Child = deco.grid;
+            deco.grid.Width = 1000;
+            deco.grid.Height = 1000;
+            deco.RunAnimationLoop();
+        }
 
-            TestRectangle.Child = StaticHelpers.CreateGrid(3, 3);
+        private void TriviaButton_Click(object sender, RoutedEventArgs e)
+        {
+            Process.Start("https://en.wikipedia.org/wiki/Sudoku");
         }
     }
 }
