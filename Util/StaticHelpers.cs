@@ -155,7 +155,8 @@ namespace Sudoku.Util
                             Border b2 = new Border()
                             {
                                 BorderThickness = new Thickness(2),
-                                BorderBrush = Brushes.Black
+                                BorderBrush = Brushes.Black,
+                                Background = Brushes.MintCream
                             };
 
                             innerGrid.Children.Add(b2);

@@ -15,7 +15,7 @@ namespace Sudoku.Games
     /// </summary>
     public sealed class ClassicSudoku : SudokuBase32
     {
-        Matrix SolutionMatrix, GameMatrix;
+        public Matrix SolutionMatrix, GameMatrix;
         
         public override bool IsUnique {
             get { return true; }
@@ -136,6 +136,12 @@ namespace Sudoku.Games
             GameMatrix.Print();
         }
 
+        public ClassicSudoku(ByteMatrix m)
+        {
+            GameMatrix = m.ToMatrix();
+            RegionWidth = RegionHeight = 3;
+        }
+
         public override int GetConstraintCountForField(int x, int y)
         {
             return 3;
@@ -186,7 +192,45 @@ namespace Sudoku.Games
 
         public override Grid CreateVisual()
         {
-            return StaticHelpers.CreateGrid(RegionWidth, RegionHeight).grid;
+            var retGrid = StaticHelpers.CreateGrid(RegionWidth, RegionHeight);
+
+            foreach (var item in retGrid.contents)
+            {
+                Point32 p = (Point32)item.GetValue(StaticHelpers.CoordProperty);
+                item.Content = GameMatrix[p.X, p.Y] == 0 ? "" : GameMatrix[p.X, p.Y].ToString();
+                item.MouseWheel += (o, e) =>
+                {
+                    if (e.Delta > 0)
+                    {
+                        Point32 coord = (Point32)((Label)o).GetValue(StaticHelpers.CoordProperty);
+                        GameMatrix[coord.X, coord.Y]++;
+                        ((Label)o).Content = GameMatrix[coord.X, coord.Y];
+                    } else
+                    {
+                        Point32 coord = (Point32)((Label)o).GetValue(StaticHelpers.CoordProperty);
+                        GameMatrix[coord.X, coord.Y]--;
+                        ((Label)o).Content = GameMatrix[coord.X, coord.Y];
+                    }
+                };
+                var parent = (Border)((Viewbox)item.Parent).Parent;
+                parent.MouseWheel += (o, e) =>
+                {                        
+                    Point32 coord = (Point32)((Label)((Viewbox)((Border)o).Child).Child).GetValue(StaticHelpers.CoordProperty);
+                    if (e.Delta > 0)
+                    {
+                        GameMatrix[coord.X, coord.Y]++;
+                        ((Label)(((Viewbox)((Border)o).Child).Child)).Content = GameMatrix[coord.X, coord.Y];
+                    }
+                    else
+                    {
+                        GameMatrix[coord.X, coord.Y]--;
+                        ((Label)(((Viewbox)((Border)o).Child).Child)).Content = GameMatrix[coord.X, coord.Y];
+                    }
+                };
+
+            }
+
+            return retGrid.grid;
         }
     }
 }

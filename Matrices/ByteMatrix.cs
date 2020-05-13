@@ -86,5 +86,33 @@ namespace Sudoku.Matrices
 
             return new Matrix(newArray);
         }
+
+        public string GetRaw()
+        {
+            byte[] bytes = new byte[Width * Height];
+
+            var counter = 0;
+            for (int x = 0; x < Width; x++)
+            {
+                for (int y = 0; y < Height; y++)
+                {
+                    bytes[counter++] = _fields[x, y];
+                }
+            }
+
+            return Convert.ToBase64String(bytes);
+        }
+
+        public static ByteMatrix FromRaw(string data)
+        {
+            ByteMatrix m = new ByteMatrix(9, 9);
+            int counter = 0;
+            foreach (var item in Convert.FromBase64String(data))
+            {
+                m._fields[counter / 9, counter % 9] = item;
+            }
+
+            return m;
+        }
     }
 }

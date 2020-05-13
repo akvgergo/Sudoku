@@ -80,5 +80,10 @@ namespace Sudoku.Matrices
 
             return new Bit64Matrix(newArray);
         }
+
+        public override string ToString()
+        {
+            return ToByteMatrix().GetRaw();
+        }
     }
 }
